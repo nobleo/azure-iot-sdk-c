@@ -95,6 +95,9 @@ static const char* DIAGNOSTIC_CONTEXT_CREATION_TIME_UTC_PROPERTY = "creationtime
 
 static const char DT_MODEL_ID_TOKEN[] = "model-id";
 
+static const char* METHOD_TWIN_CONTENT_TYPE_TOKEN = "tm-ct";
+static const char* METHOD_TWIN_CONTENT_TYPE_CBOR  = "cbor";
+
 static const char DEFAULT_IOTHUB_PRODUCT_IDENTIFIER[] = CLIENT_DEVICE_TYPE_PREFIX "/" IOTHUB_SDK_VERSION;
 
 #define TOLOWER(c) (((c>='A') && (c<='Z'))?c-'A'+'a':c)
@@ -188,6 +191,8 @@ typedef struct MQTTTRANSPORT_HANDLE_DATA_TAG
     // The second segment can be a maximum 128 characters.
     // With the / delimeter you have 384 chars (Plus a terminator of 0).
     STRING_HANDLE configPassedThroughUsername;
+    // Content type for twin and direct method payloads passed as parameter and value in username during CONNECT.
+    uint8_t method_twin_content_type; //enum value
 
     // Protocol
     MQTT_CLIENT_HANDLE mqttClient;
@@ -2381,15 +2386,17 @@ static int buildConfigForUsernameStep2IfNeeded(PMQTTTRANSPORT_HANDLE_DATA transp
 
     if (!transport_data->isConnectUsernameSet)
     {
+        STRING_HANDLE productInfoEncoded = NULL;
+        const char* appSpecifiedProductInfo = transport_data->transport_callbacks.prod_info_cb(transport_data->transport_ctx);
         STRING_HANDLE userName = NULL;
-        STRING_HANDLE modelIdParameter = NULL;
-        STRING_HANDLE urlEncodedModelId = NULL;
+        const char* apiVersion = IOTHUB_API_VERSION;
         const char* modelId = transport_data->transport_callbacks.get_model_id_cb(transport_data->transport_ctx);
         // TODO: The preview API version in SDK is only scoped to scenarios that require the modelId to be set.
         // https://github.com/Azure/azure-iot-sdk-c/issues/1547 tracks removing this once non-preview API versions support modelId.
-        const char* apiVersion = IOTHUB_API_VERSION;
-        const char* appSpecifiedProductInfo = transport_data->transport_callbacks.prod_info_cb(transport_data->transport_ctx);
-        STRING_HANDLE productInfoEncoded = NULL;
+        STRING_HANDLE urlEncodedModelId = NULL;
+        STRING_HANDLE modelIdParameter = NULL;
+        uint8_t method_twin_content_type = transport_data->method_twin_content_type;
+        STRING_HANDLE contentTypeParameter = NULL;
 
         if ((productInfoEncoded = URL_EncodeString((appSpecifiedProductInfo != NULL) ? appSpecifiedProductInfo : DEFAULT_IOTHUB_PRODUCT_IDENTIFIER)) == NULL)
         {
@@ -2423,6 +2430,23 @@ static int buildConfigForUsernameStep2IfNeeded(PMQTTTRANSPORT_HANDLE_DATA transp
                 result = 0;
             }
         }
+        else if (method_twin_content_type != OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_NONE)
+        {
+            if ((contentTypeParameter = STRING_construct_sprintf("&%s=%s", METHOD_TWIN_CONTENT_TYPE_TOKEN, METHOD_TWIN_CONTENT_TYPE_CBOR)) == NULL)
+            {
+                LogError("Cannot build content type string");
+                result = MU_FAILURE;
+            }
+            else if (STRING_concat_with_STRING(userName, contentTypeParameter) != 0)
+            {
+                LogError("Failed to set content type parameter in connect");
+                result = MU_FAILURE;
+            }
+            else
+            {
+                result = 0;
+            }
+        }
         else
         {
             result = 0;
@@ -2430,6 +2454,8 @@ static int buildConfigForUsernameStep2IfNeeded(PMQTTTRANSPORT_HANDLE_DATA transp
 
         if (result == 0)
         {
+            printf("username: %s\n", STRING_c_str(userName));
+
             STRING_delete(transport_data->configPassedThroughUsername);
             transport_data->configPassedThroughUsername = userName;
             userName = NULL;
@@ -2439,6 +2465,7 @@ static int buildConfigForUsernameStep2IfNeeded(PMQTTTRANSPORT_HANDLE_DATA transp
 
         STRING_delete(userName);
         STRING_delete(modelIdParameter);
+        STRING_delete(contentTypeParameter);
         STRING_delete(urlEncodedModelId);
         STRING_delete(productInfoEncoded);
     }
@@ -2886,6 +2913,7 @@ static PMQTTTRANSPORT_HANDLE_DATA InitializeTransportHandleData(const IOTHUB_CLI
                         state->log_trace = state->raw_trace = false;
                         state->isConnectUsernameSet = false;
                         state->auto_url_encode_decode = false;
+                        state->method_twin_content_type = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_NONE;
                         state->conn_attempted = false;
                     }
                 }
@@ -3598,6 +3626,11 @@ IOTHUB_CLIENT_RESULT IoTHubTransport_MQTT_Common_SetOption(TRANSPORT_LL_HANDLE h
         else if (strcmp(OPTION_AUTO_URL_ENCODE_DECODE, option) == 0)
         {
             transport_data->auto_url_encode_decode = *((bool*)value);
+            result = IOTHUB_CLIENT_OK;
+        }
+        else if (strcmp(OPTION_METHOD_TWIN_CONTENT_TYPE, option) == 0)
+        {
+            transport_data->method_twin_content_type = *((uint8_t*)value); // enum value
             result = IOTHUB_CLIENT_OK;
         }
         else if (strcmp(OPTION_CONNECTION_TIMEOUT, option) == 0)
