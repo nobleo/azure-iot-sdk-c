@@ -22,6 +22,21 @@
 #include "iothub_message.h"
 
 //
+// The sample defaults to encoding the twin document in JSON.  Uncomment to instead use CBOR.
+//
+// NOTE:    This sample employees Intel's tinycbor CBOR parsing library. You may choose
+//          whichever CBOR parsing library best suites your application and device.
+//
+#define CONTENT_TYPE_TWIN_CBOR 1
+#ifdef CONTENT_TYPE_TWIN_CBOR
+    #include "cbor.h"  // Intel's tinycbor CBOR parsing library
+    #define CBOR_BUFFER_SIZE 512
+    static uint8_t cbor_buf[CBOR_BUFFER_SIZE];
+#else
+    #include "parson.h"
+#endif
+
+//
 // Uncomment the protocol you wish to use.
 //
 #define SAMPLE_MQTT
@@ -52,20 +67,7 @@
 
 #define DOWORK_LOOP_NUM     3
 
-//
-// The sample defaults to encoding the twin document in JSON.  Uncomment to instead use CBOR.
-//
-// NOTE:    This sample employees Intel's tinycbor CBOR parsing library. You may choose
-//          whichever CBOR parsing library best suites your application and device.
-//
-#define CONTENT_TYPE_TWIN_CBOR 1
-#ifdef CONTENT_TYPE_TWIN_CBOR
-    #include "cbor.h"  // Intel's tinycbor CBOR parsing library
-    #define CBOR_BUFFER_SIZE 512
-    static uint8_t cbor_buf[CBOR_BUFFER_SIZE];
-#else
-    #include "parson.h"
-#endif
+
 
 //
 // Paste in the your iothub device connection string
@@ -79,7 +81,7 @@ typedef struct MAKER_TAG
 {
     char* name;
     char* style;
-    int year;
+    int64_t year;
 } Maker;
 
 typedef struct GEO_TAG
@@ -90,7 +92,7 @@ typedef struct GEO_TAG
 
 typedef struct CAR_STATE_TAG
 {
-    int32_t softwareVersion;        // reported property
+    int64_t softwareVersion;        // reported property
     uint8_t reportedMaxSpeed;       // reported property
     char* vanityPlate;              // reported property
 } CarState;
@@ -110,16 +112,16 @@ typedef struct CAR_TAG
     CarSettings settings;           // desired property
 } Car;
 
-static void initializeCar(Car* car, char* lastOilChangeDate, char* make, char* style, int year, uint8_t maxSpeed, int32_t swVersion, char* plate)
+static void initializeCar(Car* car, char* lastOilChangeDate, char* make, char* style, int64_t year, uint8_t maxSpeed, int64_t swVersion, char* plate)
 {
     memset(car, 0, sizeof(Car));
-    car.lastOilChangeDate      = lastOilChangeDate;
-    car.maker.name             = make;
-    car.maker.style            = style;
-    car.maker.year             = year;
-    car.state.reportedMaxSpeed = maxSpeed;
-    car.state.softwareVersion  = swVersion;
-    car.state.vanityPlate      = plate;
+    car->lastOilChangeDate      = lastOilChangeDate;
+    car->maker.name             = make;
+    car->maker.style            = style;
+    car->maker.year             = year;
+    car->state.reportedMaxSpeed = maxSpeed;
+    car->state.softwareVersion  = swVersion;
+    car->state.vanityPlate      = plate;
 }
 
 //
@@ -134,22 +136,20 @@ static char* serializeToCBOR(Car* car)
 
     (void)cbor_encoder_create_map(&cbor_encoder_root, &cbor_encoder_root_container, 7);
         (void)cbor_encode_text_string(&cbor_encoder_root_container, "lastOilChangeDate", sizeof("lastOilChangeDate") - 1);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->lastOilChangeDate);
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->lastOilChangeDate, sizeof(car->lastOilChangeDate) - 1);
         (void)cbor_encode_text_string(&cbor_encoder_root_container, "maker.name", sizeof("maker.name") - 1);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->maker.name);
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->maker.name, sizeof(car->maker.name) - 1);
         (void)cbor_encode_text_string(&cbor_encoder_root_container, "maker.style", sizeof("maker.style") - 1);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->maker.style);
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->maker.style, sizeof(car->maker.style) - 1);
         (void)cbor_encode_text_string(&cbor_encoder_root_container, "maker.year", sizeof("maker.year") - 1);
         (void)cbor_encode_int(&cbor_encoder_root_container, car->maker.year);
         (void)cbor_encode_text_string(&cbor_encoder_root_container, "state.reportedMaxSpeed", sizeof("state.reportedMaxSpeed") - 1);
-        (void)cbor_encode_uint(&cbor_encoder_root_container, car->state.reportedMaxSpeed);
+        (void)cbor_encode_simple_value(&cbor_encoder_root_container, car->state.reportedMaxSpeed);
         (void)cbor_encode_text_string(&cbor_encoder_root_container, "state.softwareVersion", sizeof("state.softwareVersion") - 1);
         (void)cbor_encode_int(&cbor_encoder_root_container, car->state.softwareVersion);
         (void)cbor_encode_text_string(&cbor_encoder_root_container, "state.vanityPlate", sizeof("state.vanityPlate") - 1);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->state.vanityPlate);
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->state.vanityPlate, sizeof(car->state.vanityPlate) - 1);
     (void)cbor_encoder_close_container(&cbor_encoder_root, &cbor_encoder_root_container);
-
-    return cbor_buf;
 }
 #else
 static char* serializeToJSON(Car* car)
@@ -180,7 +180,7 @@ static char* serializeToJSON(Car* car)
 
 //  Converts the desired properties of the Device Twin JSON blob received from IoT Hub into a Car object.
 #ifdef CONTENT_TYPE_TWIN_CBOR
-#elif
+#else
 static Car* parseFromJson(const char* json, DEVICE_TWIN_UPDATE_STATE update_state)
 {
     Car* car = malloc(sizeof(Car));
@@ -295,7 +295,7 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE update_state, const unsi
 {
     (void)update_state;
     (void)size;
-
+/*
     Car* oldCar = (Car*)userContextCallback;
     Car* newCar = parseFromJson((const char*)payLoad, update_state);
 
@@ -352,6 +352,7 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE update_state, const unsi
 
         free(newCar);
     }
+    */
 }
 
 static void reportedStateCallback(int status_code, void* userContextCallback)
@@ -407,10 +408,12 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
     #ifdef CONTENT_TYPE_TWIN_CBOR
             // Format direct method payloads and twin document using CBOR.
             // ONLY valid for use with MQTT. Must occur prior to CONNECT.
-            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_METHOD_TWIN_CONTENT_TYPE, &OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_CBOR);
+            OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_CBOR;
+            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
     #else
             // Not necessary to set to JSON, but this is still expected to work.
-            //(void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_METHOD_TWIN_CONTENT_TYPE, &OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_JSON);
+            //OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_JSON;
+            //(void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
     #endif
             // Set the auto URL Encoder (recommended for MQTT). Please use this option unless you are URL Encoding inputs yourself.
             // ONLY valid for use with MQTT.
@@ -426,7 +429,7 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
 #endif // SET_TRUSTED_CERT_IN_SAMPLES
 
             Car car;
-            initializeCar(Car* car, "2016", "Fabrikam", "sedan", 2014, 100, 1, "1I1");
+            initializeCar(&car, "2016", "Fabrikam", "sedan", 2014, 100, 1, "1I1");
 
 #ifdef CONTENT_TYPE_TWIN_CBOR
             char* reportedProperties = serializeToCBOR(&car);

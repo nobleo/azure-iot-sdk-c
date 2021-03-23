@@ -31,6 +31,7 @@ endif()
 
 include_directories(.)
 include_directories(${PROJECT_SOURCE_DIR}/deps/parson)
+include_directories(${PROJECT_SOURCE_DIR}/deps/tinycbor/src)
 
 add_executable(iothub_client_device_twin_and_methods_sample ${iothub_client_device_twin_and_methods_sample_c_files} ${iothub_client_device_twin_and_methods_sample_h_files})
 
@@ -52,4 +53,36 @@ endif()
 target_link_libraries(iothub_client_device_twin_and_methods_sample
     aziotsharedutil
     iothub_client
+)
+
+#Add tinycbor support only as needed by this sample.
+set(TINYCBOR_DIR ${PROJECT_SOURCE_DIR}/deps/tinycbor/src)
+
+set(tinycbor_c_files
+    ${TINYCBOR_DIR}/cborencoder.c
+    ${TINYCBOR_DIR}/cborerrorstrings.c
+    ${TINYCBOR_DIR}/cborparser.c
+    ${TINYCBOR_DIR}/cborvalidation.c
+)
+
+set(tinycbor_h_files
+    ${TINYCBOR_DIR}/cbor.h
+    ${TINYCBOR_DIR}/cborinternal_p.h
+    ${TINYCBOR_DIR}/compilersupport_p.h
+    ${TINYCBOR_DIR}/utf8_p.h
+)
+
+add_library(tinycbor
+    ${tinycbor_c_files}
+    ${tinycbor_h_files}
+)
+
+#install(FILES ${tinycbor_h_files}
+#    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/azureiot)
+install(TARGETS ${tinycbor}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+target_link_libraries(iothub_client_device_twin_and_methods_sample
+    tinycbor
 )

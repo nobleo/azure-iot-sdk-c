@@ -455,10 +455,9 @@ if (${use_installed_dependencies})
             ${package_location}
     )
 else()
-    install(FILES ${parson_h_install_files}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/azureiot)
+   # install(FILES ${parson_h_install_files}
+    #    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/azureiot)
     install(TARGETS ${parson_install_libs}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
-

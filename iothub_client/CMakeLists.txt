@@ -499,8 +499,8 @@ if(${use_installed_dependencies})
     )
     install(FILES ${iothub_client_h_install_files} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/azureiot)
 else()
-    install(FILES ${iothub_client_h_install_files}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/azureiot)
+  #  install(FILES ${iothub_client_h_install_files}
+  #      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/azureiot)
     install(TARGETS ${install_staticlibs}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
