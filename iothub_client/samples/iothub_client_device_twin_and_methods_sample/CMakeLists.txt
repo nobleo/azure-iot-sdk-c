@@ -37,13 +37,13 @@ set(iothub_client_device_twin_and_methods_sample_h_files
 add_executable(iothub_client_device_twin_and_methods_sample ${iothub_client_device_twin_and_methods_sample_c_files} ${iothub_client_device_twin_and_methods_sample_h_files})
 include_directories(.)
 
-# C-utility and iothub_client - Included at a higher level
+# C-utility and iothub_client -- Compiled and Included at a higher level
 target_link_libraries(iothub_client_device_twin_and_methods_sample
     aziotsharedutil
     iothub_client
 )
 
-# AMQP Library - Included at a higher level
+# AMQP Library -- Compiled and Included at a higher level
 if(${use_amqp})
     target_link_libraries(iothub_client_device_twin_and_methods_sample
         iothub_client_amqp_transport
@@ -51,17 +51,17 @@ if(${use_amqp})
     )
 endif()
 
-# MQTT Library - Included at a higher level
+# MQTT Library -- Compiled and Included at a higher level
 if(${use_mqtt})
     target_link_libraries(iothub_client_device_twin_and_methods_sample
         iothub_client_mqtt_transport
     )
 endif()
 
-# Parson Library -- Linked at a higher level
+# Parson Library -- Compiled and Linked at a higher level
 include_directories(${PROJECT_SOURCE_DIR}/deps/parson)
 
-# Tinycbor Library -- Compile, Link, Include, and Install
+# Tinycbor Library -- Compile, Link, and Include
 set(TINYCBOR_DIR ${PROJECT_SOURCE_DIR}/deps/tinycbor/src)
 
 set(tinycbor_c_files
@@ -87,7 +87,3 @@ target_link_libraries(iothub_client_device_twin_and_methods_sample
 )
 
 include_directories(${TINYCBOR_DIR})
-
-install(TARGETS ${tinycbor}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

@@ -434,7 +434,7 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             bool traceOn = true; // Debugging
             (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_LOG_TRACE, &traceOn);
 
-#ifdef SAMPLE_MQTT || defined SAMPLE_MQTT_OVER_WEBSOCKETS
+#if defined SAMPLE_MQTT || defined SAMPLE_MQTT_OVER_WEBSOCKETS
             // Set the auto URL Encoder (recommended for MQTT). Please use this option unless you
             // are URL Encoding inputs yourself. ONLY valid for use with MQTT.
             bool urlEncodeOn = true;
