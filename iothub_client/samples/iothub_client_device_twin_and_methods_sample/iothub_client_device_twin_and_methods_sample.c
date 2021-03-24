@@ -79,8 +79,8 @@ static const char* connectionString = "[device connection string]";
 //
 typedef struct MAKER_TAG
 {
-    char* name;
-    char* style;
+    unsigned char* name;
+    unsigned char* style;
     int64_t year;
 } Maker;
 
@@ -94,7 +94,7 @@ typedef struct CAR_STATE_TAG
 {
     int64_t softwareVersion;        // reported property
     uint8_t reportedMaxSpeed;       // reported property
-    char* vanityPlate;              // reported property
+    unsigned char* vanityPlate;              // reported property
 } CarState;
 
 typedef struct CAR_SETTINGS_TAG
@@ -105,14 +105,14 @@ typedef struct CAR_SETTINGS_TAG
 
 typedef struct CAR_TAG
 {
-    char* lastOilChangeDate;        // reported property
-    char* changeOilReminder;        // desired property
+    unsigned char* lastOilChangeDate;        // reported property
+    unsigned char* changeOilReminder;        // desired property
     Maker maker;                    // reported property
     CarState state;                 // reported property
     CarSettings settings;           // desired property
 } Car;
 
-static void initializeCar(Car* car, char* lastOilChangeDate, char* make, char* style, int64_t year, uint8_t maxSpeed, int64_t swVersion, char* plate)
+static void initializeCar(Car* car, unsigned char* lastOilChangeDate, unsigned char* make, unsigned char* style, int64_t year, uint8_t maxSpeed, int64_t swVersion, unsigned char* plate)
 {
     memset(car, 0, sizeof(Car));
     car->lastOilChangeDate      = lastOilChangeDate;
@@ -128,33 +128,48 @@ static void initializeCar(Car* car, char* lastOilChangeDate, char* make, char* s
 //  Serialize Car object to CBOR/JSON blob. To be sent as a twin document with reported properties.
 //
 #ifdef CONTENT_TYPE_TWIN_CBOR
-static char* serializeToCBOR(Car* car)
+static unsigned char* serializeToCBOR(Car* car)
 {
     CborEncoder cbor_encoder_root;
     CborEncoder cbor_encoder_root_container;
+    CborEncoder cbor_encoder_maker;
+    CborEncoder cbor_encoder_state;
+
     cbor_encoder_init(&cbor_encoder_root, cbor_buf, CBOR_BUFFER_SIZE, 0);
 
-    (void)cbor_encoder_create_map(&cbor_encoder_root, &cbor_encoder_root_container, 7);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, "lastOilChangeDate", sizeof("lastOilChangeDate") - 1);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->lastOilChangeDate, sizeof(car->lastOilChangeDate) - 1);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, "maker.name", sizeof("maker.name") - 1);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->maker.name, sizeof(car->maker.name) - 1);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, "maker.style", sizeof("maker.style") - 1);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->maker.style, sizeof(car->maker.style) - 1);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, "maker.year", sizeof("maker.year") - 1);
-        (void)cbor_encode_int(&cbor_encoder_root_container, car->maker.year);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, "state.reportedMaxSpeed", sizeof("state.reportedMaxSpeed") - 1);
-        (void)cbor_encode_simple_value(&cbor_encoder_root_container, car->state.reportedMaxSpeed);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, "state.softwareVersion", sizeof("state.softwareVersion") - 1);
-        (void)cbor_encode_int(&cbor_encoder_root_container, car->state.softwareVersion);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, "state.vanityPlate", sizeof("state.vanityPlate") - 1);
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->state.vanityPlate, sizeof(car->state.vanityPlate) - 1);
+    (void)cbor_encoder_create_map(&cbor_encoder_root, &cbor_encoder_root_container, 3);
+
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, "lastOilChangeDate", strlen("lastOilChangeDate"));
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->lastOilChangeDate, 4);
+
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, "maker", strlen("maker"));
+        (void)cbor_encoder_create_map(&cbor_encoder_root_container, &cbor_encoder_maker, 3);
+            (void)cbor_encode_text_string(&cbor_encoder_maker, "name", strlen("name"));
+            (void)cbor_encode_text_string(&cbor_encoder_maker, car->maker.name, strlen(car->maker.name));
+            (void)cbor_encode_text_string(&cbor_encoder_maker, "style", strlen("style"));
+            (void)cbor_encode_text_string(&cbor_encoder_maker, car->maker.style, strlen(car->maker.style));
+            (void)cbor_encode_text_string(&cbor_encoder_maker, "year", strlen("year"));
+            (void)cbor_encode_int(&cbor_encoder_maker, car->maker.year);
+        (void)cbor_encoder_close_container(&cbor_encoder_root_container, &cbor_encoder_maker);
+
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, "state", strlen("state"));
+        (void)cbor_encoder_create_map(&cbor_encoder_root_container, &cbor_encoder_state, 3);
+            (void)cbor_encode_text_string(&cbor_encoder_state, "reportedMaxSpeed", strlen("reportedMaxSpeed"));
+            (void)cbor_encode_simple_value(&cbor_encoder_state, car->state.reportedMaxSpeed);
+            (void)cbor_encode_text_string(&cbor_encoder_state, "softwareVersion", strlen("softwareVersion"));
+            (void)cbor_encode_int(&cbor_encoder_state, car->state.softwareVersion);
+            (void)cbor_encode_text_string(&cbor_encoder_state, "vanityPlate", strlen("vanityPlate"));
+            (void)cbor_encode_text_string(&cbor_encoder_state, car->state.vanityPlate, strlen(car->state.vanityPlate));
+        (void)cbor_encoder_close_container(&cbor_encoder_root_container, &cbor_encoder_state);
+
     (void)cbor_encoder_close_container(&cbor_encoder_root, &cbor_encoder_root_container);
+
+    return cbor_buf;
 }
 #else
-static char* serializeToJSON(Car* car)
+static unsigned char* serializeToJSON(Car* car)
 {
-    char* result;
+    unsigned char* result;
 
     JSON_Value* root_value = json_value_init_object();
     JSON_Object* root_object = json_value_get_object(root_value);
@@ -432,13 +447,13 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             initializeCar(&car, "2016", "Fabrikam", "sedan", 2014, 100, 1, "1I1");
 
 #ifdef CONTENT_TYPE_TWIN_CBOR
-            char* reportedProperties = serializeToCBOR(&car);
+            unsigned char* reportedProperties = serializeToCBOR(&car);
 #else
-            char* reportedProperties = serializeToJSON(&car);
+            unsigned char* reportedProperties = serializeToJSON(&car);
 #endif
 
-            (void)IoTHubDeviceClient_GetTwinAsync(iotHubClientHandle, getCompleteDeviceTwinOnDemandCallback, NULL);
-            //(void)IoTHubDeviceClient_SendReportedState(iotHubClientHandle, (const unsigned char*)reportedProperties, strlen(reportedProperties), reportedStateCallback, NULL);
+            //(void)IoTHubDeviceClient_GetTwinAsync(iotHubClientHandle, getCompleteDeviceTwinOnDemandCallback, NULL);
+            (void)IoTHubDeviceClient_SendReportedState(iotHubClientHandle, reportedProperties, strlen(reportedProperties), reportedStateCallback, NULL);
             //(void)IoTHubDeviceClient_SetDeviceMethodCallback(iotHubClientHandle, deviceMethodCallback, NULL);
             //(void)IoTHubDeviceClient_SetDeviceTwinCallback(iotHubClientHandle, deviceTwinCallback, &car);
 

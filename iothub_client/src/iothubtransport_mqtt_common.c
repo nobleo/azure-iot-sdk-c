@@ -95,8 +95,8 @@ static const char* DIAGNOSTIC_CONTEXT_CREATION_TIME_UTC_PROPERTY = "creationtime
 
 static const char DT_MODEL_ID_TOKEN[] = "model-id";
 
-static const char* METHOD_TWIN_CONTENT_TYPE_TOKEN = "tm-ct";
-static const char* METHOD_TWIN_CONTENT_TYPE_CBOR  = "cbor";
+static const char* METHOD_TWIN_CONTENT_TYPE_TOKEN = "default-content-type";
+static const char* METHOD_TWIN_CONTENT_TYPE_CBOR  = "application/cbor";
 
 static const char DEFAULT_IOTHUB_PRODUCT_IDENTIFIER[] = CLIENT_DEVICE_TYPE_PREFIX "/" IOTHUB_SDK_VERSION;
 
