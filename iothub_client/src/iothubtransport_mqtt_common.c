@@ -2417,12 +2417,12 @@ static int buildConfigForUsernameStep2IfNeeded(PMQTTTRANSPORT_HANDLE_DATA transp
             }
             else if ((modelIdParameter = STRING_construct_sprintf("&%s=%s", DT_MODEL_ID_TOKEN, STRING_c_str(urlEncodedModelId))) == NULL)
             {
-                LogError("Cannot build modelID string");
+                LogError("Cannot build %s=%s string", DT_MODEL_ID_TOKEN, STRING_c_str(urlEncodedModelId));
                 result = MU_FAILURE;
             }
             else if (STRING_concat_with_STRING(userName, modelIdParameter) != 0)
             {
-                LogError("Failed to set modelID parameter in connect");
+                LogError("Failed to add %s=%s username in CONNECT", DT_MODEL_ID_TOKEN, STRING_c_str(urlEncodedModelId));
                 result = MU_FAILURE;
             }
             else
@@ -2430,16 +2430,16 @@ static int buildConfigForUsernameStep2IfNeeded(PMQTTTRANSPORT_HANDLE_DATA transp
                 result = 0;
             }
         }
-        else if (method_twin_content_type != OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_NONE)
+        else if (method_twin_content_type != OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_UNKNOWN)
         {
             if ((contentTypeParameter = STRING_construct_sprintf("&%s=%s", METHOD_TWIN_CONTENT_TYPE_TOKEN, METHOD_TWIN_CONTENT_TYPE_CBOR)) == NULL)
             {
-                LogError("Cannot build content type string");
+                LogError("Cannot build %s=%s string", METHOD_TWIN_CONTENT_TYPE_TOKEN, METHOD_TWIN_CONTENT_TYPE_CBOR);
                 result = MU_FAILURE;
             }
             else if (STRING_concat_with_STRING(userName, contentTypeParameter) != 0)
             {
-                LogError("Failed to set content type parameter in connect");
+                LogError("Failed to add %s=%s to username in CONNECT", METHOD_TWIN_CONTENT_TYPE_TOKEN, METHOD_TWIN_CONTENT_TYPE_CBOR);
                 result = MU_FAILURE;
             }
             else
@@ -2913,7 +2913,7 @@ static PMQTTTRANSPORT_HANDLE_DATA InitializeTransportHandleData(const IOTHUB_CLI
                         state->log_trace = state->raw_trace = false;
                         state->isConnectUsernameSet = false;
                         state->auto_url_encode_decode = false;
-                        state->method_twin_content_type = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_NONE;
+                        state->method_twin_content_type = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_UNKNOWN;
                         state->conn_attempted = false;
                     }
                 }
