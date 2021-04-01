@@ -95,6 +95,7 @@ static const char* DIAGNOSTIC_CONTEXT_CREATION_TIME_UTC_PROPERTY = "creationtime
 
 static const char DT_MODEL_ID_TOKEN[] = "model-id";
 
+// Content type for twin document and direct methods. Will be used in username.
 static const char* METHOD_TWIN_CONTENT_TYPE_TOKEN = "default-content-type";
 static const char* METHOD_TWIN_CONTENT_TYPE_CBOR  = "application/cbor";
 
