@@ -32,24 +32,11 @@
 #include "iothub_message.h"
 
 //
-// Format -- Uncomment the format you wish to use.
-//
-#define CONTENT_TYPE_CBOR
-//#define CONTENT_TYPE_JSON
-
-#ifdef CONTENT_TYPE_CBOR
-    #include "cbor.h"
-    #define CBOR_BUFFER_SIZE 512
-#elif defined CONTENT_TYPE_JSON
-    #include "parson.h"
-#endif // CONTENT TYPE
-
-//
 // Transport Layer Protocal -- Uncomment the protocol you wish to use.
 //
-#define SAMPLE_MQTT
+//#define SAMPLE_MQTT
 //#define SAMPLE_MQTT_OVER_WEBSOCKETS
-//#define SAMPLE_AMQP
+#define SAMPLE_AMQP
 //#define SAMPLE_AMQP_OVER_WEBSOCKETS
 //#define SAMPLE_HTTP
 
@@ -64,6 +51,21 @@
 #elif defined SAMPLE_HTTP
     #include "iothubtransporthttp.h"
 #endif // SAMPLE PROTOCOL
+
+//
+// Format -- Uncomment the format you wish to use.
+//
+#if defined SAMPLE_MQTT || defined SAMPLE_MQTT_OVER_WEBSOCKETS
+    #define CONTENT_TYPE_CBOR
+    //#define CONTENT_TYPE_JSON
+#endif
+
+#ifdef CONTENT_TYPE_CBOR
+    #include "cbor.h"
+    #define CBOR_BUFFER_SIZE 512
+#elif defined CONTENT_TYPE_JSON
+    #include "parson.h"
+#endif // CONTENT TYPE
 
 //
 // Trusted Cert -- Turn on via build flag
@@ -393,17 +395,17 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             // are URL Encoding inputs yourself. ONLY valid for use with MQTT.
             bool urlEncodeOn = true;
             (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_AUTO_URL_ENCODE_DECODE, &urlEncodeOn);
-#ifdef CONTENT_TYPE_CBOR
+    #ifdef CONTENT_TYPE_CBOR
             // Format Device Twin document and Direct Method payload using CBOR.
             // ONLY valid for use with MQTT. Must occur prior to CONNECT.
             //OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_CBOR;
             //(void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
-#elif defined CONTENT_TYPE_JSON
+    #elif defined CONTENT_TYPE_JSON
             // This option not required to use JSON format due to backwards compatibility.
             // If option is used, it is ONLY valid for use with MQTT. Must occur priot to CONNECT.
             //OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_JSON;
             //(void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
-#endif // CONTENT TYPE
+    #endif // CONTENT TYPE
 #endif // SAMPLE_MQTT || SAMPLE_MQTT_OVER_WEBSOCKETS
 
 #ifdef SET_TRUSTED_CERT_IN_SAMPLES
