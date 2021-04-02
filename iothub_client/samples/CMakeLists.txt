@@ -72,7 +72,7 @@ if(${use_amqp} AND ${use_http})
     add_sample_directory(iothub_ll_client_shared_sample)
 endif()
 
-if(${use_amqp} AND ${use_mqtt})
+if(${use_amqp} OR ${use_mqtt} OR ${use_http})
     add_sample_directory(iothub_client_device_twin_and_methods_sample)
 endif()
 
