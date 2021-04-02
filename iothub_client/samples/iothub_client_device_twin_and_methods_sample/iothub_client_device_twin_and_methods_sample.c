@@ -407,7 +407,7 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
 #endif // SAMPLE_MQTT || SAMPLE_MQTT_OVER_WEBSOCKETS
 
 #ifdef SET_TRUSTED_CERT_IN_SAMPLES
-            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, "TrustedCerts", certificates)
+            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, "TrustedCerts", certificates);
 #endif // SET_TRUSTED_CERT_IN_SAMPLES
 
             //

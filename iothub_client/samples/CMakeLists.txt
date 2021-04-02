@@ -6,6 +6,30 @@
 
 usePermissiveRulesForSdkSamplesAndTests()
 
+# Tinycbor Library
+set(TINYCBOR_DIR ${CMAKE_CURRENT_LIST_DIR}/deps/tinycbor/src)
+
+set(tinycbor_c_files
+    ${TINYCBOR_DIR}/cborencoder.c
+    ${TINYCBOR_DIR}/cborerrorstrings.c
+    ${TINYCBOR_DIR}/cborparser.c
+    ${TINYCBOR_DIR}/cborvalidation.c
+)
+set(tinycbor_h_files
+    ${TINYCBOR_DIR}/cbor.h
+    ${TINYCBOR_DIR}/cborinternal_p.h
+    ${TINYCBOR_DIR}/compilersupport_p.h
+    ${TINYCBOR_DIR}/utf8_p.h
+)
+
+add_library(tinycbor
+    ${tinycbor_c_files}
+    ${tinycbor_h_files}
+)
+set_target_properties(tinycbor PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps/tinycbor/
+)
+
 function(add_sample_directory whatIsBuilding)
     add_subdirectory(${whatIsBuilding})
 
