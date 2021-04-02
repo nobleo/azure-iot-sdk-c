@@ -35,8 +35,8 @@
 // Transport Layer Protocal -- Uncomment the protocol you wish to use.
 //
 //#define SAMPLE_MQTT
-//#define SAMPLE_MQTT_OVER_WEBSOCKETS
-#define SAMPLE_AMQP
+#define SAMPLE_MQTT_OVER_WEBSOCKETS
+//#define SAMPLE_AMQP
 //#define SAMPLE_AMQP_OVER_WEBSOCKETS
 //#define SAMPLE_HTTP
 
@@ -53,17 +53,20 @@
 #endif // SAMPLE PROTOCOL
 
 //
-// Format -- Uncomment the format you wish to use.
+// Format -- Uncomment the format you wish to use. If not using MQTT, JSON is used.
 //
 #if defined SAMPLE_MQTT || defined SAMPLE_MQTT_OVER_WEBSOCKETS
-    #define CONTENT_TYPE_CBOR
-    //#define CONTENT_TYPE_JSON
+    //#define CONTENT_TYPE_CBOR
+    #define CONTENT_TYPE_JSON
 #endif
 
 #ifdef CONTENT_TYPE_CBOR
     #include "cbor.h"
     #define CBOR_BUFFER_SIZE 512
-#elif defined CONTENT_TYPE_JSON
+#else // CONTENT_TYPE_JSON
+    #ifndef CONTENT_TYPE_JSON
+        #define CONTENT_TYPE_JSON
+    #endif
     #include "parson.h"
 #endif // CONTENT TYPE
 
@@ -259,22 +262,6 @@ static void deviceDesiredPropertiesTwinCallback(DEVICE_TWIN_UPDATE_STATE update_
     (void)update_state;
     (void)size;
 
-#ifdef CONTENT_TYPE_CBOR
-// TO test CBOR parser ONLY.
-    Car car1;
-    memset(&car1, 0, sizeof(Car));
-    strcpy(car1.lastOilChangeDate, "2016");
-    strcpy(car1.maker.name, "Fabrikam");
-    strcpy(car1.maker.style, "sedan");
-    car1.maker.year = 2014;
-    car1.state.maxSpeed = 158;
-    car1.state.softwareVersion = 55;
-    strcpy(car1.state.vanityPlate, "1T1");
-
-    uint8_t reportedProperties1[CBOR_BUFFER_SIZE];
-    serializeToCBOR(&car1, reportedProperties1, CBOR_BUFFER_SIZE);
-    payload = reportedProperties1;
-#endif
     printf("deviceDesiredPropertiesTwinCallback payload:\n%.*s\n", (int)size, payload);
 
     Car* car = (Car*)userContextCallback;
@@ -398,8 +385,8 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
     #ifdef CONTENT_TYPE_CBOR
             // Format Device Twin document and Direct Method payload using CBOR.
             // ONLY valid for use with MQTT. Must occur prior to CONNECT.
-            //OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_CBOR;
-            //(void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
+            OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_CBOR;
+            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
     #elif defined CONTENT_TYPE_JSON
             // This option not required to use JSON format due to backwards compatibility.
             // If option is used, it is ONLY valid for use with MQTT. Must occur priot to CONNECT.
