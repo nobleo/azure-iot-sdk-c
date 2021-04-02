@@ -15,7 +15,8 @@ set(iothub_client_device_twin_and_methods_sample_c_files
 if(${use_sample_trusted_cert})
     add_definitions(-DSET_TRUSTED_CERT_IN_SAMPLES)
     include_directories(${PROJECT_SOURCE_DIR}/certs)
-    set(iothub_client_sample_amqp_shared_methods_c_files ${iothub_client_sample_amqp_shared_methods_c_files} ${PROJECT_SOURCE_DIR}/certs/certs.c)
+    set(iothub_client_device_twin_and_methods_sample_c_files ${iothub_client_device_twin_and_methods_sample_c_files}
+        ${PROJECT_SOURCE_DIR}/certs/certs.c)
 endif()
 
 add_executable(iothub_client_device_twin_and_methods_sample
