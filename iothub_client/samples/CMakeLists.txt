@@ -43,6 +43,7 @@ add_sample_directory(iothub_ll_c2d_sample)
 add_sample_directory(iothub_ll_client_x509_sample)
 add_sample_directory(iothub_ll_telemetry_sample)
 add_sample_directory(iotedge_downstream_device_sample)
+add_sample_directory(iothub_client_device_twin_and_methods_sample)
 
 if(${use_http})
     if(NOT ${dont_use_uploadtoblob})
@@ -70,10 +71,6 @@ endif()
 
 if(${use_amqp} AND ${use_http})
     add_sample_directory(iothub_ll_client_shared_sample)
-endif()
-
-if(${use_amqp} OR ${use_mqtt} OR ${use_http})
-    add_sample_directory(iothub_client_device_twin_and_methods_sample)
 endif()
 
 if(${use_mqtt})
