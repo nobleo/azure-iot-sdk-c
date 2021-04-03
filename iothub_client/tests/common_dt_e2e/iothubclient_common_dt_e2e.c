@@ -431,7 +431,7 @@ void dt_e2e_send_reported_test(IOTHUB_CLIENT_TRANSPORT_PROVIDER protocol, IOTHUB
     }
 }
 
- 
+
 
 
 static const char *COMPLETE_DESIRED_PAYLOAD_FORMAT = "{\"properties\":{\"desired\":{\"integer_property\": %d, \"string_property\": \"%s\", \"array\": [%d, \"%s\"]}}}";
@@ -828,6 +828,41 @@ void dt_e2e_get_twin_async_test(IOTHUB_CLIENT_TRANSPORT_PROVIDER protocol, IOTHU
     device_desired_deinit(deviceDesiredData);
 }
 
+// dt_e2e_send_content_type_test makes sure that when OPTION_CONTENT_TYPE is specified at creation time
+void dt_e2e_send_content_type_test(IOTHUB_CLIENT_TRANSPORT_PROVIDER protocol, IOTHUB_ACCOUNT_AUTH_METHOD accountAuthMethod, OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE contentType)
+{
+    // arrange
+    IOTHUB_PROVISIONED_DEVICE* deviceToUse = IoTHubAccount_GetDevice(g_iothubAcctInfo, accountAuthMethod);
+
+    DEVICE_DESIRED_DATA *deviceDesiredData = device_desired_data_init();
+    ASSERT_IS_NOT_NULL(deviceDesiredData, "failed to create the device client data");
+
+    dt_e2e_create_client_handle(deviceToUse, protocol);
+    // Set the content type prior to any network I/O.  The caller passes the content type because it is
+    // is persisted on the Hub after initial set.
+    setoption_on_device_or_module(OPTION_METHOD_TWIN_CONTENT_TYPE, &contentType, "Cannot specify content type");
+
+    //Send a CBOR encoded reported property. Get resulting full twin CBOR-encoded document.
+    // JSON encoded: {"integer_property": 123, "string_property": "hello world!"}
+    // CBOR encoded (49 bytes): A270696E74656 765725F70726F7065727479187B6F737472696E675F70726F70657274796C68656C6C6F20776F726C6421
+    uint8_t reportedProperteies[] = A270696E74656765725F70726F7065727479187B6F737472696E675F70726F70657274796C68656C6C6F20776F726C6421;
+
+    sendreportedstate_on_device_or_module(reportedProperties, NULL);
+
+
+            uint8_t reportedProperties[CBOR_BUFFER_SIZE];
+            serializeToCBOR(&car, reportedProperties, CBOR_BUFFER_SIZE);
+            printf("Size of encoded CBOR: %zu\n", strlen(reportedProperties));
+
+    request_full_twin_and_wait_for_response(deviceToUse, deviceDesiredData);
+
+    // Parse Twin. CBOR lirary should be able to parse and find reported property.
+    deviceDesitedData->cb_payload
+
+
+
+}
+
 // dt_e2e_send_module_id_test makes sure that when OPTION_MODEL_ID is specified at creation time, then
 // the Service Twin has it specified.
 void dt_e2e_send_module_id_test(IOTHUB_CLIENT_TRANSPORT_PROVIDER protocol, IOTHUB_ACCOUNT_AUTH_METHOD accountAuthMethod, const char* modelId)
@@ -840,7 +875,7 @@ void dt_e2e_send_module_id_test(IOTHUB_CLIENT_TRANSPORT_PROVIDER protocol, IOTHU
 
     dt_e2e_create_client_handle(deviceToUse, protocol);
     // Set the ModelId prior to any network I/O.  The caller passes the modelId because the the modelId
-    // is persisted on the Hub after initial set.  So to truly test that the modelId is sent across on 
+    // is persisted on the Hub after initial set.  So to truly test that the modelId is sent across on
     // each test, we need to have the caller change it on each invocation of this test helper.
     setoption_on_device_or_module(OPTION_MODEL_ID, modelId, "Cannot specify modelId");
 
@@ -852,10 +887,10 @@ void dt_e2e_send_module_id_test(IOTHUB_CLIENT_TRANSPORT_PROVIDER protocol, IOTHU
     const char *connectionString = IoTHubAccount_GetIoTHubConnString(g_iothubAcctInfo);
     IOTHUB_SERVICE_CLIENT_AUTH_HANDLE iotHubServiceClientHandle = IoTHubServiceClientAuth_CreateFromConnectionString(connectionString);
     ASSERT_IS_NOT_NULL(iotHubServiceClientHandle, "IoTHubServiceClientAuth_CreateFromConnectionString failed");
-    
+
     IOTHUB_SERVICE_CLIENT_DEVICE_TWIN_HANDLE serviceClientDeviceTwinHandle = IoTHubDeviceTwin_Create(iotHubServiceClientHandle);
     ASSERT_IS_NOT_NULL(serviceClientDeviceTwinHandle, "IoTHubDeviceTwin_Create failed");
-    
+
     char *twinData = dt_e2e_get_twin_from_service(serviceClientDeviceTwinHandle, deviceToUse);
 
     JSON_Value *rootValue = json_parse_string(twinData);
