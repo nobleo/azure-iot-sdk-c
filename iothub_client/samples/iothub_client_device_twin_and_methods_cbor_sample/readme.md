@@ -15,6 +15,28 @@
 This document describes how to build and run sample applications on the Windows platform. This multi-step process includes:
 -   Preparing your development environment
 -   Creating and configuring and instance of Azure IoT Hub
+
+-   <details><summary><i>Install Intel's tinycbor library.</i></summary>
+    <p>
+
+    NOTE: This library must be installed prior to building the C SDK.
+
+    If on Linux, Run the following commands.
+
+    ```
+    git clone https://github.com/intel/tinycbor.git
+    cd tinycbor
+    make
+    sudo make install
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+    ```
+
+
+    Please check your `/usr/local/lib` directory and update permissions on the installed libraries if needed.
+
+    </p>
+    </details>
+
 -   Build and deploy Azure IoT SDK on device
 
 <a name="Step-1-Prerequisites"></a>
@@ -36,7 +58,7 @@ You should have the following items ready before beginning the process:
 2.  In Visual Studio, in **Solution Explorer**, navigate to and open the following file:
 
     IoTHub_Samples\iothub_client_device_twin_and_methods_sample\Source Files\iothub_client_device_twin_and_methods_sample.c
-    
+
 
 3.  Locate the following code in the file:
 
@@ -49,9 +71,9 @@ You should have the following items ready before beginning the process:
        ```
        static const char* connectionString = "HostName=..."
        ```
-       
-5.  In **Solution Explorer**, right-click the project IoTHub_Samples\iothub_client_device_twin_and_methods_sample, click **Debug**, and then click **Start new instance** to build and run the sample. 
-    
+
+5.  In **Solution Explorer**, right-click the project IoTHub_Samples\iothub_client_device_twin_and_methods_sample, click **Debug**, and then click **Start new instance** to build and run the sample.
+
 6.  As the client is running it will receive the current complete Twin json content, as well as send an update to the reported properties.
 
 

@@ -322,6 +322,7 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             uint8_t reported_properties[CBOR_BUFFER_SIZE];
             serializeToCBOR(&car, reported_properties, CBOR_BUFFER_SIZE);
             printf("Size of encoded CBOR: %zu\n", strlen(reported_properties));
+            // IMPORTANT: You must validate your own data prior to sending.
 
             //
             // Send and receive messages from IoT Hub

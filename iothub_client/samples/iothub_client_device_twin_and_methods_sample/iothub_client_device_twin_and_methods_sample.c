@@ -177,6 +177,7 @@ static void deviceDesiredPropertiesTwinCallback(DEVICE_TWIN_UPDATE_STATE update_
     Car desiredCar;
     memset(&desiredCar, 0, sizeof(Car));
     parseFromJSON(&desiredCar, payload);
+    // IMPORTANT: You must validate your own data prior to sending.
 
     if (desiredCar.change_oil_reminder != car->change_oil_reminder)
     {

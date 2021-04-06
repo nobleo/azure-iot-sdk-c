@@ -19,6 +19,7 @@ This folder contains simple samples showing how to use the various features of t
 
 * Device services samples (Device Twins, Methods, and Device Management):
   * **iothub_client_device_twin_and_methods_sample**: Implements a simple Cloud to Device Direct Method and Device Twin sample
+  * **iothub_client_device_twin_and_methods_cbor_sample**: Implements a simple Cloud to Device Direct Method and Device Twin sample using CBOR instead of JSON. Please note, this sample requires the separate installation of [Intel's tinycbor library](https://github.com/intel/tinycbor). See the [sample Readme.md](https://github.com/Azure/azure-iot-sdk-c/tree/master/iothub_client/samples/iothub_client_device_twin_and_methods_sample#readme) for more detail.
   * **iothub_client_sample_mqtt_dm**: Shows the implementation of a firmware update of a device (Raspberry Pi 3)
 
 * Uploading blob to Azure:
