@@ -63,31 +63,31 @@
 //
 // Connection String - Paste in the your iothub device connection string.
 //
-static const char* connectionString = "[device connection string]";
+static const char* connection_string = "[device connection string]";
 
-static IOTHUB_DEVICE_CLIENT_HANDLE iotHubClientHandle;
+static IOTHUB_DEVICE_CLIENT_HANDLE iothub_client_handle;
 
 //
 // Car Object
 //
 typedef struct MAKER_TAG
 {
-    unsigned char name[32];
-    unsigned char style[32];
+    unsigned char* name;
+    unsigned char* style;
     uint64_t year;
 } Maker;
 
 typedef struct STATE_TAG
 {
-    uint64_t softwareVersion;         // desired/reported property
-    uint8_t maxSpeed;                 // desired/reported property
-    unsigned char vanityPlate[32];    // reported property
+    uint64_t software_version;         // desired/reported property
+    uint8_t max_speed;                 // desired/reported property
+    unsigned char* vanity_plate;       // reported property
 } State;
 
 typedef struct CAR_TAG
 {
-    unsigned char lastOilChangeDate[32];    // reported property
-    bool changeOilReminder;                 // desired/reported property
+    unsigned char* last_oil_change_date;    // reported property
+    bool change_oil_reminder;               // desired/reported property
     Maker maker;                            // reported property
     State state;                            // desired/reported property
 } Car;
@@ -104,13 +104,13 @@ static void serializeToJSON(Car* car, unsigned char** result)
     JSON_Object* root_object = json_value_get_object(root_value);
 
     // Only reported properties:
-    (void)json_object_set_string(root_object, "lastOilChangeDate", car->lastOilChangeDate);
+    (void)json_object_set_string(root_object, "last_oil_change_date", car->last_oil_change_date);
     (void)json_object_dotset_string(root_object, "maker.name", car->maker.name);
     (void)json_object_dotset_string(root_object, "maker.style", car->maker.style);
     (void)json_object_dotset_number(root_object, "maker.year", car->maker.year);
-    (void)json_object_dotset_number(root_object, "state.maxSpeed", car->state.maxSpeed);
-    (void)json_object_dotset_number(root_object, "state.softwareVersion", car->state.softwareVersion);
-    (void)json_object_dotset_string(root_object, "state.vanityPlate", car->state.vanityPlate);
+    (void)json_object_dotset_number(root_object, "state.max_speed", car->state.max_speed);
+    (void)json_object_dotset_number(root_object, "state.software_version", car->state.software_version);
+    (void)json_object_dotset_string(root_object, "state.vanity_plate", car->state.vanity_plate);
 
     *result = (unsigned char*)json_serialize_to_string(root_value); // internal malloc
 
@@ -124,23 +124,23 @@ static void parseFromJSON(Car *car, const unsigned char* json_payload)
     JSON_Object* root_object = json_value_get_object(root_value);
 
     // Only desired properties:
-    JSON_Value* changeOilReminder = json_object_get_value(root_object, "changeOilReminder");
-    JSON_Value* maxSpeed = json_object_dotget_value(root_object, "state.maxSpeed");
-    JSON_Value* softwareVersion = json_object_dotget_value(root_object, "state.softwareVersion");
+    JSON_Value* change_oil_reminder = json_object_get_value(root_object, "change_oil_reminder");
+    JSON_Value* max_speed = json_object_dotget_value(root_object, "state.max_speed");
+    JSON_Value* software_version = json_object_dotget_value(root_object, "state.software_version");
 
-    if (changeOilReminder != NULL)
+    if (change_oil_reminder != NULL)
     {
-        car->changeOilReminder = json_value_get_boolean(changeOilReminder);
+        car->change_oil_reminder = json_value_get_boolean(change_oil_reminder);
     }
 
-    if (maxSpeed != NULL)
+    if (max_speed != NULL)
     {
-        car->state.maxSpeed = (uint8_t)json_value_get_number(maxSpeed);
+        car->state.max_speed = (uint8_t)json_value_get_number(max_speed);
     }
 
-    if (softwareVersion != NULL)
+    if (software_version != NULL)
     {
-        car->state.softwareVersion = json_value_get_number(softwareVersion);
+        car->state.software_version = json_value_get_number(software_version);
     }
 }
 
@@ -178,31 +178,31 @@ static void deviceDesiredPropertiesTwinCallback(DEVICE_TWIN_UPDATE_STATE update_
     memset(&desiredCar, 0, sizeof(Car));
     parseFromJSON(&desiredCar, payload);
 
-    if (desiredCar.changeOilReminder != car->changeOilReminder)
+    if (desiredCar.change_oil_reminder != car->change_oil_reminder)
     {
-        printf("Received a desired changeOilReminder = %d\n", desiredCar.changeOilReminder);
-        car->changeOilReminder = desiredCar.changeOilReminder;
+        printf("Received a desired change_oil_reminder = %d\n", desiredCar.change_oil_reminder);
+        car->change_oil_reminder = desiredCar.change_oil_reminder;
     }
 
-    if (desiredCar.state.maxSpeed != 0 && desiredCar.state.maxSpeed != car->state.maxSpeed)
+    if (desiredCar.state.max_speed != 0 && desiredCar.state.max_speed != car->state.max_speed)
     {
-        printf("Received a desired maxSpeed = %" PRIu8 "\n", desiredCar.state.maxSpeed);
-        car->state.maxSpeed = desiredCar.state.maxSpeed;
+        printf("Received a desired max_speed = %" PRIu8 "\n", desiredCar.state.max_speed);
+        car->state.max_speed = desiredCar.state.max_speed;
     }
 
-    if (desiredCar.state.softwareVersion != 0 && desiredCar.state.softwareVersion != car->state.softwareVersion)
+    if (desiredCar.state.software_version != 0 && desiredCar.state.software_version != car->state.software_version)
     {
-        printf("Received a desired softwareVersion = %ld" "\n", desiredCar.state.softwareVersion);
-        car->state.softwareVersion = desiredCar.state.softwareVersion;
+        printf("Received a desired software_version = %ld" "\n", desiredCar.state.software_version);
+        car->state.software_version = desiredCar.state.software_version;
     }
 
-    unsigned char* reportedProperties;
-    serializeToJSON(car, &reportedProperties); // internal malloc
+    unsigned char* reported_properties;
+    serializeToJSON(car, &reported_properties); // internal malloc
 
-    (void)IoTHubDeviceClient_SendReportedState(iotHubClientHandle, reportedProperties, strlen(reportedProperties), deviceReportedPropertiesTwinCallback, NULL);
+    (void)IoTHubDeviceClient_SendReportedState(iothub_client_handle, reported_properties, strlen(reported_properties), deviceReportedPropertiesTwinCallback, NULL);
             ThreadAPI_Sleep(1000);
 
-    free(reportedProperties);
+    free(reported_properties);
 }
 
 // Callback for when IoT Hub sends a Direct Method to the device.
@@ -218,19 +218,19 @@ static int deviceMethodCallback(const char* method_name, const unsigned char* pa
 
     if (strcmp("getCarVIN", method_name) == 0)
     {
-        const char deviceMethodResponse[] = "{ \"Response\": \"1HGCM82633A004352\" }";
-        *response_size = sizeof(deviceMethodResponse)-1;
+        const char device_method_response[] = "{ \"Response\": \"1HGCM82633A004352\" }";
+        *response_size = sizeof(device_method_response)-1;
         *response = malloc(*response_size);
-        (void)memcpy(*response, deviceMethodResponse, *response_size);
+        (void)memcpy(*response, device_method_response, *response_size);
         result = 200;
     }
     else
     {
         // All other entries are ignored.
-        const char deviceMethodResponse[] = "{ }";
-        *response_size = sizeof(deviceMethodResponse)-1;
+        const char device_method_response[] = "{ }";
+        *response_size = sizeof(device_method_response)-1;
         *response = malloc(*response_size);
-        (void)memcpy(*response, deviceMethodResponse, *response_size);
+        (void)memcpy(*response, device_method_response, *response_size);
         result = -1;
     }
 
@@ -262,32 +262,32 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
     }
     else
     {
-        if ((iotHubClientHandle = IoTHubDeviceClient_CreateFromConnectionString(connectionString, protocol)) == NULL)
+        if ((iothub_client_handle = IoTHubDeviceClient_CreateFromConnectionString(connection_string, protocol)) == NULL)
         {
-            (void)printf("ERROR: iotHubClientHandle is NULL!\r\n");
+            (void)printf("ERROR: iothub_client_handle is NULL!\r\n");
         }
         else
         {
             //
             // Set Options
             //
-            bool traceOn = true; // Debugging
-            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_LOG_TRACE, &traceOn);
+            bool trace_on = true; // Debugging
+            (void)IoTHubDeviceClient_SetOption(iothub_client_handle, OPTION_LOG_TRACE, &trace_on);
 
 #if defined SAMPLE_MQTT || defined SAMPLE_MQTT_OVER_WEBSOCKETS
             // Set the auto URL Encoder (recommended for MQTT). Please use this option unless you
             // are URL Encoding inputs yourself. ONLY valid for use with MQTT.
-            bool urlEncodeOn = true;
-            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_AUTO_URL_ENCODE_DECODE, &urlEncodeOn);
+            bool url_encode_on = true;
+            (void)IoTHubDeviceClient_SetOption(iothub_client_handle, OPTION_AUTO_URL_ENCODE_DECODE, &url_encode_on);
 
             // This option not required to use JSON format due to backwards compatibility.
             // If option is used, it is ONLY valid for use with MQTT. Must occur priot to CONNECT.
             //OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_JSON;
-            //(void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
+            //(void)IoTHubDeviceClient_SetOption(iothub_client_handle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
 #endif // SAMPLE_MQTT || SAMPLE_MQTT_OVER_WEBSOCKETS
 
 #ifdef SET_TRUSTED_CERT_IN_SAMPLES
-            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, "TrustedCerts", certificates);
+            (void)IoTHubDeviceClient_SetOption(iothub_client_handle, "TrustedCerts", certificates);
 #endif // SET_TRUSTED_CERT_IN_SAMPLES
 
             //
@@ -295,31 +295,31 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             //
             Car car;
             memset(&car, 0, sizeof(Car));
-            strcpy(car.lastOilChangeDate, "2016");
-            strcpy(car.maker.name, "Fabrikam");
-            strcpy(car.maker.style, "sedan");
+            car.last_oil_change_date = "2016";
+            car.maker.name = "Fabrikam";
+            car.maker.style = "sedan";
             car.maker.year = 2014;
-            car.state.maxSpeed = 100;
-            car.state.softwareVersion = 1;
-            strcpy(car.state.vanityPlate, "1T1");
+            car.state.max_speed = 100;
+            car.state.software_version = 1;
+            car.state.vanity_plate = "1T1";
 
-            unsigned char* reportedProperties;
-            serializeToJSON(&car, &reportedProperties); // internal malloc
-            printf("Size of encoded JSON: %zu\n", strlen(reportedProperties));
+            unsigned char* reported_properties;
+            serializeToJSON(&car, &reported_properties); // internal malloc
+            printf("Size of encoded JSON: %zu\n", strlen(reported_properties));
 
             //
             // Send and receive messages from IoT Hub
             //
-            (void)IoTHubDeviceClient_GetTwinAsync(iotHubClientHandle, getTwinAsyncCallback, NULL);
+            (void)IoTHubDeviceClient_GetTwinAsync(iothub_client_handle, getTwinAsyncCallback, NULL);
             ThreadAPI_Sleep(1000);
 
-            (void)IoTHubDeviceClient_SendReportedState(iotHubClientHandle, reportedProperties, strlen(reportedProperties), deviceReportedPropertiesTwinCallback, NULL);
+            (void)IoTHubDeviceClient_SendReportedState(iothub_client_handle, reported_properties, strlen(reported_properties), deviceReportedPropertiesTwinCallback, NULL);
             ThreadAPI_Sleep(1000);
 
-            (void)IoTHubDeviceClient_SetDeviceTwinCallback(iotHubClientHandle, deviceDesiredPropertiesTwinCallback, &car);
+            (void)IoTHubDeviceClient_SetDeviceTwinCallback(iothub_client_handle, deviceDesiredPropertiesTwinCallback, &car);
             ThreadAPI_Sleep(1000);
 
-            (void)IoTHubDeviceClient_SetDeviceMethodCallback(iotHubClientHandle, deviceMethodCallback, NULL);
+            (void)IoTHubDeviceClient_SetDeviceMethodCallback(iothub_client_handle, deviceMethodCallback, NULL);
             ThreadAPI_Sleep(1000);
 
             //
@@ -328,8 +328,8 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             (void)printf("Wait for desired properties update or direct method from service. Press any key to exit sample.\r\n");
             (void)getchar();
 
-            IoTHubDeviceClient_Destroy(iotHubClientHandle);
-            free(reportedProperties);
+            IoTHubDeviceClient_Destroy(iothub_client_handle);
+            free(reported_properties);
         }
 
         IoTHub_Deinit();

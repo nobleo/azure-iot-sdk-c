@@ -31,8 +31,8 @@
 //
 // Transport Layer Protocal -- Uncomment the protocol you wish to use.
 //
-//#define SAMPLE_MQTT
-#define SAMPLE_MQTT_OVER_WEBSOCKETS
+#define SAMPLE_MQTT
+//#define SAMPLE_MQTT_OVER_WEBSOCKETS
 
 #ifdef SAMPLE_MQTT
     #include "iothubtransportmqtt.h"
@@ -50,31 +50,31 @@
 //
 // Connection String - Paste in the your iothub device connection string.
 //
-static const char* connectionString = "[device connection string]";
+static const char* connection_string = "[device connection string]";
 
-static IOTHUB_DEVICE_CLIENT_HANDLE iotHubClientHandle;
+static IOTHUB_DEVICE_CLIENT_HANDLE iothub_client_handle;
 
 //
 // Car Object
 //
 typedef struct MAKER_TAG
 {
-    unsigned char name[32];
-    unsigned char style[32];
+    unsigned char* name;
+    unsigned char* style;
     uint64_t year;
 } Maker;
 
 typedef struct STATE_TAG
 {
-    uint64_t softwareVersion;         // desired/reported property
-    uint8_t maxSpeed;                 // desired/reported property
-    unsigned char vanityPlate[32];    // reported property
+    uint64_t software_version;         // desired/reported property
+    uint8_t max_speed;                 // desired/reported property
+    unsigned char* vanity_plate;       // reported property
 } State;
 
 typedef struct CAR_TAG
 {
-    unsigned char lastOilChangeDate[32];    // reported property
-    bool changeOilReminder;                 // desired/reported property
+    unsigned char* last_oil_change_date;    // reported property
+    bool change_oil_reminder;               // desired/reported property
     Maker maker;                            // reported property
     State state;                            // desired/reported property
 } Car;
@@ -98,8 +98,8 @@ static void serializeToCBOR(Car* car, uint8_t* cbor_buf, size_t buffer_size)
 
     (void)cbor_encoder_create_map(&cbor_encoder_root, &cbor_encoder_root_container, 3);
 
-        (void)cbor_encode_text_string(&cbor_encoder_root_container, "lastOilChangeDate", strlen("lastOilChangeDate"));
-        (void)cbor_encode_boolean(&cbor_encoder_root_container, car->lastOilChangeDate);
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, "last_oil_change_date", strlen("last_oil_change_date"));
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, car->last_oil_change_date, strlen(car->last_oil_change_date));
 
         (void)cbor_encode_text_string(&cbor_encoder_root_container, "maker", strlen("maker"));
         (void)cbor_encoder_create_map(&cbor_encoder_root_container, &cbor_encoder_maker, 3);
@@ -113,12 +113,12 @@ static void serializeToCBOR(Car* car, uint8_t* cbor_buf, size_t buffer_size)
 
         (void)cbor_encode_text_string(&cbor_encoder_root_container, "state", strlen("state"));
         (void)cbor_encoder_create_map(&cbor_encoder_root_container, &cbor_encoder_state, 3);
-            (void)cbor_encode_text_string(&cbor_encoder_state, "maxSpeed", strlen("maxSpeed"));
-            (void)cbor_encode_simple_value(&cbor_encoder_state, car->state.maxSpeed);
-            (void)cbor_encode_text_string(&cbor_encoder_state, "softwareVersion", strlen("softwareVersion"));
-            (void)cbor_encode_uint(&cbor_encoder_state, car->state.softwareVersion);
-            (void)cbor_encode_text_string(&cbor_encoder_state, "vanityPlate", strlen("vanityPlate"));
-            (void)cbor_encode_text_string(&cbor_encoder_state, car->state.vanityPlate, strlen(car->state.vanityPlate));
+            (void)cbor_encode_text_string(&cbor_encoder_state, "max_speed", strlen("max_speed"));
+            (void)cbor_encode_simple_value(&cbor_encoder_state, car->state.max_speed);
+            (void)cbor_encode_text_string(&cbor_encoder_state, "software_version", strlen("software_version"));
+            (void)cbor_encode_uint(&cbor_encoder_state, car->state.software_version);
+            (void)cbor_encode_text_string(&cbor_encoder_state, "vanity_plate", strlen("vanity_plate"));
+            (void)cbor_encode_text_string(&cbor_encoder_state, car->state.vanity_plate, strlen(car->state.vanity_plate));
         (void)cbor_encoder_close_container(&cbor_encoder_root_container, &cbor_encoder_state);
 
     (void)cbor_encoder_close_container(&cbor_encoder_root, &cbor_encoder_root_container);
@@ -132,31 +132,31 @@ static void parseFromCBOR(Car* car, const unsigned char* cbor_payload)
     CborValue state_root;
 
     // Only desired properties:
-    CborValue changeOilReminder;
-    CborValue maxSpeed;
-    CborValue softwareVersion;
+    CborValue change_oil_reminder;
+    CborValue max_speed;
+    CborValue software_version;
 
     // WARNING: Check the return of all API calls when developing your solution. Return checks are
     //          ommited from this sample for simplification.
     (void)cbor_parser_init(cbor_payload, strlen(cbor_payload), 0, &cbor_parser, &root);
 
-    (void)cbor_value_map_find_value(&root, "changeOilReminder", &changeOilReminder);
-    if (cbor_value_is_valid(&changeOilReminder))
+    (void)cbor_value_map_find_value(&root, "change_oil_reminder", &change_oil_reminder);
+    if (cbor_value_is_valid(&change_oil_reminder))
     {
-        cbor_value_get_boolean(&changeOilReminder, &car->changeOilReminder);
+        cbor_value_get_boolean(&change_oil_reminder, &car->change_oil_reminder);
     }
 
     (void)cbor_value_map_find_value(&root, "state", &state_root);
-    (void)cbor_value_map_find_value(&state_root, "maxSpeed", &maxSpeed);
-    if (cbor_value_is_valid(&maxSpeed))
+    (void)cbor_value_map_find_value(&state_root, "max_speed", &max_speed);
+    if (cbor_value_is_valid(&max_speed))
     {
-        cbor_value_get_simple_type(&maxSpeed, &car->state.maxSpeed);
+        cbor_value_get_simple_type(&max_speed, &car->state.max_speed);
     }
 
-    (void)cbor_value_map_find_value(&state_root, "softwareVersion", &softwareVersion);
-    if (cbor_value_is_valid(&softwareVersion))
+    (void)cbor_value_map_find_value(&state_root, "software_version", &software_version);
+    if (cbor_value_is_valid(&software_version))
     {
-        cbor_value_get_uint64(&softwareVersion, &car->state.softwareVersion);
+        cbor_value_get_uint64(&software_version, &car->state.software_version);
     }
 }
 
@@ -164,14 +164,23 @@ static void parseFromCBOR(Car* car, const unsigned char* cbor_payload)
 //
 // Callbacks
 //
-
+static void deviceDesiredPropertiesTwinCallback(DEVICE_TWIN_UPDATE_STATE update_state, const unsigned char* payload, size_t size, void* userContextCallback);
 // Callback for async GET request to IoT Hub for entire Device Twin document.
 static void getTwinAsyncCallback(DEVICE_TWIN_UPDATE_STATE update_state, const unsigned char* payLoad, size_t size, void* userContextCallback)
 {
     (void)update_state;
     (void)userContextCallback;
 
-    printf("getTwinAsyncCallback payload:\n%.*s\n", (int)size, payLoad);
+    //printf("getTwinAsyncCallback payload:\n%.*s\n", (int)size, payLoad);
+
+    //TEST//
+    // JSON: {"changeOilReminder":true,"state":{"maxSpeed":120,"softwareVersion":2},"$version":13}
+    // CBOR: A3 71 63 68 61 6E 67 65 4F 69 6C 52 65 6D 69 6E 64 65 72 F5 65 73 74 61 74 65 A2 68 6D 61 78 53 70 65 65 64 18 78 6F 73 6F 66 74 77 61 72 65 56 65 72 73 69 6F 6E 02 68 24 76 65 72 73 69 6F 6E 0D
+    //uint8_t cbor_array[] = {0xA3, 0x71, 0x63, 0x68, 0x61, 0x6E, 0x67, 0x65, 0x4F, 0x69, 0x6C, 0x52, 0x65, 0x6D, 0x69, 0x6E, 0x64, 0x65, 0x72, 0xF5, 0x65, 0x73, 0x74, 0x61, 0x74, 0x65, 0xA2, 0x68, 0x6D, 0x61, 0x78, 0x53, 0x70, 0x65, 0x65, 0x64, 0x18, 0x78, 0x6F, 0x73, 0x6F, 0x66, 0x74, 0x77, 0x61, 0x72, 0x65, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6F, 0x6E, 0x02, 0x68, 0x24, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6F, 0x6E, 0x0D};
+    //Car desired_car;
+    //memset(&desired_car, 0, sizeof(Car));
+    //parseFromCBOR(&desired_car, cbor_array);
+    //printf("change_oil_reminder: %d\n", desired_car.change_oil_reminder);
 }
 
 // Callback for when device sends reported properties to IoT Hub, and IoT Hub updates the Device
@@ -191,32 +200,32 @@ static void deviceDesiredPropertiesTwinCallback(DEVICE_TWIN_UPDATE_STATE update_
     printf("deviceDesiredPropertiesTwinCallback payload:\n%.*s\n", (int)size, payload);
 
     Car* car = (Car*)userContextCallback;
-    Car desiredCar;
-    memset(&desiredCar, 0, sizeof(Car));
-    parseFromCBOR(&desiredCar, payload);
+    Car desired_car;
+    memset(&desired_car, 0, sizeof(Car));
+    parseFromCBOR(&desired_car, payload);
 
-    if (desiredCar.changeOilReminder != car->changeOilReminder)
+    if (desired_car.change_oil_reminder != car->change_oil_reminder)
     {
-        printf("Received a desired changeOilReminder = %d\n", desiredCar.changeOilReminder);
-        car->changeOilReminder = desiredCar.changeOilReminder;
+        printf("Received a desired change_oil_reminder = %d\n", desired_car.change_oil_reminder);
+        car->change_oil_reminder = desired_car.change_oil_reminder;
     }
 
-    if (desiredCar.state.maxSpeed != 0 && desiredCar.state.maxSpeed != car->state.maxSpeed)
+    if (desired_car.state.max_speed != 0 && desired_car.state.max_speed != car->state.max_speed)
     {
-        printf("Received a desired maxSpeed = %" PRIu8 "\n", desiredCar.state.maxSpeed);
-        car->state.maxSpeed = desiredCar.state.maxSpeed;
+        printf("Received a desired max_speed = %" PRIu8 "\n", desired_car.state.max_speed);
+        car->state.max_speed = desired_car.state.max_speed;
     }
 
-    if (desiredCar.state.softwareVersion != 0 && desiredCar.state.softwareVersion != car->state.softwareVersion)
+    if (desired_car.state.software_version != 0 && desired_car.state.software_version != car->state.software_version)
     {
-        printf("Received a desired softwareVersion = %ld" "\n", desiredCar.state.softwareVersion);
-        car->state.softwareVersion = desiredCar.state.softwareVersion;
+        printf("Received a desired software_version = %ld" "\n", desired_car.state.software_version);
+        car->state.software_version = desired_car.state.software_version;
     }
 
-    uint8_t reportedProperties[CBOR_BUFFER_SIZE];
-    serializeToCBOR(car, reportedProperties, CBOR_BUFFER_SIZE);
+    uint8_t reported_properties[CBOR_BUFFER_SIZE];
+    serializeToCBOR(car, reported_properties, CBOR_BUFFER_SIZE);
 
-    (void)IoTHubDeviceClient_SendReportedState(iotHubClientHandle, reportedProperties, strlen(reportedProperties), deviceReportedPropertiesTwinCallback, NULL);
+    (void)IoTHubDeviceClient_SendReportedState(iothub_client_handle, reported_properties, strlen(reported_properties), deviceReportedPropertiesTwinCallback, NULL);
             ThreadAPI_Sleep(1000);
 }
 
@@ -233,19 +242,19 @@ static int deviceMethodCallback(const char* method_name, const unsigned char* pa
 
     if (strcmp("getCarVIN", method_name) == 0)
     {
-        const char deviceMethodResponse[] = "{ \"Response\": \"1HGCM82633A004352\" }";
-        *response_size = sizeof(deviceMethodResponse)-1;
+        const char device_method_response[] = "{ \"Response\": \"1HGCM82633A004352\" }";
+        *response_size = sizeof(device_method_response)-1;
         *response = malloc(*response_size);
-        (void)memcpy(*response, deviceMethodResponse, *response_size);
+        (void)memcpy(*response, device_method_response, *response_size);
         result = 200;
     }
     else
     {
         // All other entries are ignored.
-        const char deviceMethodResponse[] = "{ }";
-        *response_size = sizeof(deviceMethodResponse)-1;
+        const char device_method_response[] = "{ }";
+        *response_size = sizeof(device_method_response)-1;
         *response = malloc(*response_size);
-        (void)memcpy(*response, deviceMethodResponse, *response_size);
+        (void)memcpy(*response, device_method_response, *response_size);
         result = -1;
     }
 
@@ -271,30 +280,30 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
     }
     else
     {
-        if ((iotHubClientHandle = IoTHubDeviceClient_CreateFromConnectionString(connectionString, protocol)) == NULL)
+        if ((iothub_client_handle = IoTHubDeviceClient_CreateFromConnectionString(connection_string, protocol)) == NULL)
         {
-            (void)printf("ERROR: iotHubClientHandle is NULL!\r\n");
+            (void)printf("ERROR: iothub_client_handle is NULL!\r\n");
         }
         else
         {
             //
             // Set Options
             //
-            bool traceOn = true; // Debugging
-            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_LOG_TRACE, &traceOn);
+            bool trace_on = true; // Debugging
+            (void)IoTHubDeviceClient_SetOption(iothub_client_handle, OPTION_LOG_TRACE, &trace_on);
 
             // Set the auto URL Encoder (recommended for MQTT). Please use this option unless you
             // are URL Encoding inputs yourself. ONLY valid for use with MQTT.
-            bool urlEncodeOn = true;
-            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_AUTO_URL_ENCODE_DECODE, &urlEncodeOn);
+            bool url_encode_on = true;
+            (void)IoTHubDeviceClient_SetOption(iothub_client_handle, OPTION_AUTO_URL_ENCODE_DECODE, &url_encode_on);
 
             // Format Device Twin document and Direct Method payload using CBOR.
             // ONLY valid for use with MQTT. Must occur prior to CONNECT.
-            OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_CBOR;
-            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
+          //  OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_CBOR;
+          //  (void)IoTHubDeviceClient_SetOption(iothub_client_handle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
 
 #ifdef SET_TRUSTED_CERT_IN_SAMPLES
-            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, "TrustedCerts", certificates);
+            (void)IoTHubDeviceClient_SetOption(iothub_client_handle, "TrustedCerts", certificates);
 #endif // SET_TRUSTED_CERT_IN_SAMPLES
 
             //
@@ -302,31 +311,31 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             //
             Car car;
             memset(&car, 0, sizeof(Car));
-            strcpy(car.lastOilChangeDate, "2016");
-            strcpy(car.maker.name, "Fabrikam");
-            strcpy(car.maker.style, "sedan");
+            car.last_oil_change_date = "2016";
+            car.maker.name = "Fabrikam";
+            car.maker.style = "sedan";
             car.maker.year = 2014;
-            car.state.maxSpeed = 100;
-            car.state.softwareVersion = 1;
-            strcpy(car.state.vanityPlate, "1T1");
+            car.state.max_speed = 100;
+            car.state.software_version = 1;
+            car.state.vanity_plate = "1T1";
 
-            uint8_t reportedProperties[CBOR_BUFFER_SIZE];
-            serializeToCBOR(&car, reportedProperties, CBOR_BUFFER_SIZE);
-            printf("Size of encoded CBOR: %zu\n", strlen(reportedProperties));
+            uint8_t reported_properties[CBOR_BUFFER_SIZE];
+            serializeToCBOR(&car, reported_properties, CBOR_BUFFER_SIZE);
+            printf("Size of encoded CBOR: %zu\n", strlen(reported_properties));
 
             //
             // Send and receive messages from IoT Hub
             //
-            (void)IoTHubDeviceClient_GetTwinAsync(iotHubClientHandle, getTwinAsyncCallback, NULL);
+            (void)IoTHubDeviceClient_GetTwinAsync(iothub_client_handle, getTwinAsyncCallback, NULL);
             ThreadAPI_Sleep(1000);
 
-            (void)IoTHubDeviceClient_SendReportedState(iotHubClientHandle, reportedProperties, strlen(reportedProperties), deviceReportedPropertiesTwinCallback, NULL);
+            (void)IoTHubDeviceClient_SendReportedState(iothub_client_handle, reported_properties, strlen(reported_properties), deviceReportedPropertiesTwinCallback, NULL);
             ThreadAPI_Sleep(1000);
 
-            (void)IoTHubDeviceClient_SetDeviceTwinCallback(iotHubClientHandle, deviceDesiredPropertiesTwinCallback, &car);
+            (void)IoTHubDeviceClient_SetDeviceTwinCallback(iothub_client_handle, deviceDesiredPropertiesTwinCallback, &car);
             ThreadAPI_Sleep(1000);
 
-            (void)IoTHubDeviceClient_SetDeviceMethodCallback(iotHubClientHandle, deviceMethodCallback, NULL);
+            (void)IoTHubDeviceClient_SetDeviceMethodCallback(iothub_client_handle, deviceMethodCallback, NULL);
             ThreadAPI_Sleep(1000);
 
             //
@@ -335,7 +344,7 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             (void)printf("Wait for desired properties update or direct method from service. Press any key to exit sample.\r\n");
             (void)getchar();
 
-            IoTHubDeviceClient_Destroy(iotHubClientHandle);
+            IoTHubDeviceClient_Destroy(iothub_client_handle);
         }
 
         IoTHub_Deinit();

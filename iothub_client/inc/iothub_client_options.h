@@ -46,18 +46,18 @@ extern "C"
     static STATIC_VAR_UNUSED const char* OPTION_PRODUCT_INFO = "product_info";
 
     /*
-    * @brief    Specifies the Digital Twin Model Id of the connection. Only valid for use with MQTT Transport
+    * @brief Specifies the Digital Twin Model Id of the connection. Only valid for use with MQTT Transport
     */
     static STATIC_VAR_UNUSED const char* OPTION_MODEL_ID = "model_id";
 
     /*
-    * @brief	Sent in username to inform IoT Hub what data format the device expects Twin
-    *	    	Document and Direct Method payloads to use. Option must be set before connecting
-    * 		    to IoT Hub. Only supported with MQTT.
+    * @brief Sent in username to inform IoT Hub what data format the device expects Twin Document
+    *        and Direct Method payloads to use. Option must be set before connecting to IoT Hub.
+    *        Only supported with MQTT.
     *
-    *   		If this option is not set, the default is JSON. If data format provided is not
-    *	    	supported by IoT Hub, service will close the connection with error 4 code
-    *		    indicating Bad Username/Password.
+    *        If this option is not set, the default is JSON. If data format provided is not
+    *	     supported by IoT Hub, service will close the connection with error 4 code indicating
+    *        Bad Username/Password.
     */
     static STATIC_VAR_UNUSED const char* OPTION_METHOD_TWIN_CONTENT_TYPE = "method_twin-ct";
 
