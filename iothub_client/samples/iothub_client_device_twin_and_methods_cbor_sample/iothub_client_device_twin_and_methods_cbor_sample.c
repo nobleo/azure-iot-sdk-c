@@ -5,14 +5,9 @@
 // meaningful data for your application. It also shows how to work with Direct Methods and their
 // encoded payloads.
 //
-// There are two encoding options: CBOR or JSON. This sample demonstrates the use of JSON only and
-// employs the parson library. However, you may choose your own preferred library to encode/decode
-// the Device Twin document and Direct Methods payloads.
-
-// There are analogous samples using the serializer component, which is an SDK library provided to
-// help parse JSON. The serializer is dependent on the parson library. These samples are
-// devicetwin_simplesample and devicemethod_simplesample. Most applications will not need use of the
-// serializer.
+// There are two encoding options: CBOR or JSON.  This sample demonstrates the use of CBOR only and
+// employs the tinycbor library which must be installed independently of the C SDK. However, you may
+// choose your own preferred library to encode/decode the Device Twin document and Direct Methods payloads.
 
 // WARNING: Check the return of all API calls when developing your solution. Return checks are
 //          ommited from this sample for simplification.
@@ -30,27 +25,19 @@
 #include "iothub_device_client.h"
 #include "iothub_message.h"
 
-#include "parson.h"
+#include "tinycbor/cbor.h"
+#define CBOR_BUFFER_SIZE 512
 
 //
 // Transport Layer Protocal -- Uncomment the protocol you wish to use.
 //
 //#define SAMPLE_MQTT
 #define SAMPLE_MQTT_OVER_WEBSOCKETS
-//#define SAMPLE_AMQP
-//#define SAMPLE_AMQP_OVER_WEBSOCKETS
-//#define SAMPLE_HTTP
 
 #ifdef SAMPLE_MQTT
     #include "iothubtransportmqtt.h"
 #elif defined SAMPLE_MQTT_OVER_WEBSOCKETS
     #include "iothubtransportmqtt_websockets.h"
-#elif defined SAMPLE_AMQP
-    #include "iothubtransportamqp.h"
-#elif SAMPLE_AMQP_OVER_WEBSOCKETS
-    #include "iothubtransportamqp_websockets.h"
-#elif defined SAMPLE_HTTP
-    #include "iothubtransporthttp.h"
 #endif // SAMPLE PROTOCOL
 
 //
@@ -97,52 +84,82 @@ typedef struct CAR_TAG
 // Encoding/Decoding with chosen library
 //
 
-// Serialize Car object to JSON blob. To be sent as a twin document with reported properties.
-static void serializeToJSON(Car* car, unsigned char** result)
+//  Serialize Car object to CBOR blob. To be sent as a twin document with reported properties.
+static void serializeToCBOR(Car* car, uint8_t* cbor_buf, size_t buffer_size)
 {
-    JSON_Value* root_value = json_value_init_object(); // internal malloc
-    JSON_Object* root_object = json_value_get_object(root_value);
+    CborEncoder cbor_encoder_root;
+    CborEncoder cbor_encoder_root_container;
+    CborEncoder cbor_encoder_maker;
+    CborEncoder cbor_encoder_state;
 
-    // Only reported properties:
-    (void)json_object_set_string(root_object, "lastOilChangeDate", car->lastOilChangeDate);
-    (void)json_object_dotset_string(root_object, "maker.name", car->maker.name);
-    (void)json_object_dotset_string(root_object, "maker.style", car->maker.style);
-    (void)json_object_dotset_number(root_object, "maker.year", car->maker.year);
-    (void)json_object_dotset_number(root_object, "state.maxSpeed", car->state.maxSpeed);
-    (void)json_object_dotset_number(root_object, "state.softwareVersion", car->state.softwareVersion);
-    (void)json_object_dotset_string(root_object, "state.vanityPlate", car->state.vanityPlate);
+    // WARNING: Check the return of all API calls when developing your solution. Return checks are
+    //          ommited from this sample for simplification.
+    cbor_encoder_init(&cbor_encoder_root, cbor_buf, buffer_size, 0);
 
-    *result = (unsigned char*)json_serialize_to_string(root_value); // internal malloc
+    (void)cbor_encoder_create_map(&cbor_encoder_root, &cbor_encoder_root_container, 3);
 
-    json_value_free(root_value);
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, "lastOilChangeDate", strlen("lastOilChangeDate"));
+        (void)cbor_encode_boolean(&cbor_encoder_root_container, car->lastOilChangeDate);
+
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, "maker", strlen("maker"));
+        (void)cbor_encoder_create_map(&cbor_encoder_root_container, &cbor_encoder_maker, 3);
+            (void)cbor_encode_text_string(&cbor_encoder_maker, "name", strlen("name"));
+            (void)cbor_encode_text_string(&cbor_encoder_maker, car->maker.name, strlen(car->maker.name));
+            (void)cbor_encode_text_string(&cbor_encoder_maker, "style", strlen("style"));
+            (void)cbor_encode_text_string(&cbor_encoder_maker, car->maker.style, strlen(car->maker.style));
+            (void)cbor_encode_text_string(&cbor_encoder_maker, "year", strlen("year"));
+            (void)cbor_encode_uint(&cbor_encoder_maker, car->maker.year);
+        (void)cbor_encoder_close_container(&cbor_encoder_root_container, &cbor_encoder_maker);
+
+        (void)cbor_encode_text_string(&cbor_encoder_root_container, "state", strlen("state"));
+        (void)cbor_encoder_create_map(&cbor_encoder_root_container, &cbor_encoder_state, 3);
+            (void)cbor_encode_text_string(&cbor_encoder_state, "maxSpeed", strlen("maxSpeed"));
+            (void)cbor_encode_simple_value(&cbor_encoder_state, car->state.maxSpeed);
+            (void)cbor_encode_text_string(&cbor_encoder_state, "softwareVersion", strlen("softwareVersion"));
+            (void)cbor_encode_uint(&cbor_encoder_state, car->state.softwareVersion);
+            (void)cbor_encode_text_string(&cbor_encoder_state, "vanityPlate", strlen("vanityPlate"));
+            (void)cbor_encode_text_string(&cbor_encoder_state, car->state.vanityPlate, strlen(car->state.vanityPlate));
+        (void)cbor_encoder_close_container(&cbor_encoder_root_container, &cbor_encoder_state);
+
+    (void)cbor_encoder_close_container(&cbor_encoder_root, &cbor_encoder_root_container);
 }
 
-// Convert the desired properties of the Device Twin JSON blob from IoT Hub into a Car Object.
-static void parseFromJSON(Car *car, const unsigned char* json_payload)
+// Convert the desired properties of the Device Twin CBOR blob from IoT Hub into a Car Object.
+static void parseFromCBOR(Car* car, const unsigned char* cbor_payload)
 {
-    JSON_Value* root_value = json_parse_string(json_payload);
-    JSON_Object* root_object = json_value_get_object(root_value);
+    CborParser cbor_parser;
+    CborValue root;
+    CborValue state_root;
 
     // Only desired properties:
-    JSON_Value* changeOilReminder = json_object_get_value(root_object, "changeOilReminder");
-    JSON_Value* maxSpeed = json_object_dotget_value(root_object, "state.maxSpeed");
-    JSON_Value* softwareVersion = json_object_dotget_value(root_object, "state.softwareVersion");
+    CborValue changeOilReminder;
+    CborValue maxSpeed;
+    CborValue softwareVersion;
 
-    if (changeOilReminder != NULL)
+    // WARNING: Check the return of all API calls when developing your solution. Return checks are
+    //          ommited from this sample for simplification.
+    (void)cbor_parser_init(cbor_payload, strlen(cbor_payload), 0, &cbor_parser, &root);
+
+    (void)cbor_value_map_find_value(&root, "changeOilReminder", &changeOilReminder);
+    if (cbor_value_is_valid(&changeOilReminder))
     {
-        car->changeOilReminder = json_value_get_boolean(changeOilReminder);
+        cbor_value_get_boolean(&changeOilReminder, &car->changeOilReminder);
     }
 
-    if (maxSpeed != NULL)
+    (void)cbor_value_map_find_value(&root, "state", &state_root);
+    (void)cbor_value_map_find_value(&state_root, "maxSpeed", &maxSpeed);
+    if (cbor_value_is_valid(&maxSpeed))
     {
-        car->state.maxSpeed = (uint8_t)json_value_get_number(maxSpeed);
+        cbor_value_get_simple_type(&maxSpeed, &car->state.maxSpeed);
     }
 
-    if (softwareVersion != NULL)
+    (void)cbor_value_map_find_value(&state_root, "softwareVersion", &softwareVersion);
+    if (cbor_value_is_valid(&softwareVersion))
     {
-        car->state.softwareVersion = json_value_get_number(softwareVersion);
+        cbor_value_get_uint64(&softwareVersion, &car->state.softwareVersion);
     }
 }
+
 
 //
 // Callbacks
@@ -176,7 +193,7 @@ static void deviceDesiredPropertiesTwinCallback(DEVICE_TWIN_UPDATE_STATE update_
     Car* car = (Car*)userContextCallback;
     Car desiredCar;
     memset(&desiredCar, 0, sizeof(Car));
-    parseFromJSON(&desiredCar, payload);
+    parseFromCBOR(&desiredCar, payload);
 
     if (desiredCar.changeOilReminder != car->changeOilReminder)
     {
@@ -196,13 +213,11 @@ static void deviceDesiredPropertiesTwinCallback(DEVICE_TWIN_UPDATE_STATE update_
         car->state.softwareVersion = desiredCar.state.softwareVersion;
     }
 
-    unsigned char* reportedProperties;
-    serializeToJSON(car, &reportedProperties); // internal malloc
+    uint8_t reportedProperties[CBOR_BUFFER_SIZE];
+    serializeToCBOR(car, reportedProperties, CBOR_BUFFER_SIZE);
 
     (void)IoTHubDeviceClient_SendReportedState(iotHubClientHandle, reportedProperties, strlen(reportedProperties), deviceReportedPropertiesTwinCallback, NULL);
             ThreadAPI_Sleep(1000);
-
-    free(reportedProperties);
 }
 
 // Callback for when IoT Hub sends a Direct Method to the device.
@@ -248,12 +263,6 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
     protocol = MQTT_Protocol;
 #elif defined SAMPLE_MQTT_OVER_WEBSOCKETS
     protocol = MQTT_WebSocket_Protocol;
-#elif defined SAMPLE_AMQP
-    protocol = AMQP_Protocol;
-#elif defined SAMPLE_AMQP_OVER_WEBSOCKETS
-    protocol = AMQP_Protocol_over_WebSocketsTls;
-#elif defined SAMPLE_HTTP
-    protocol = HTTP_Protocol;
 #endif // SAMPLE PROTOCOL
 
     if (IoTHub_Init() != 0)
@@ -274,17 +283,15 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             bool traceOn = true; // Debugging
             (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_LOG_TRACE, &traceOn);
 
-#if defined SAMPLE_MQTT || defined SAMPLE_MQTT_OVER_WEBSOCKETS
             // Set the auto URL Encoder (recommended for MQTT). Please use this option unless you
             // are URL Encoding inputs yourself. ONLY valid for use with MQTT.
             bool urlEncodeOn = true;
             (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_AUTO_URL_ENCODE_DECODE, &urlEncodeOn);
 
-            // This option not required to use JSON format due to backwards compatibility.
-            // If option is used, it is ONLY valid for use with MQTT. Must occur priot to CONNECT.
-            //OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_JSON;
-            //(void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
-#endif // SAMPLE_MQTT || SAMPLE_MQTT_OVER_WEBSOCKETS
+            // Format Device Twin document and Direct Method payload using CBOR.
+            // ONLY valid for use with MQTT. Must occur prior to CONNECT.
+            OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_CBOR;
+            (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
 
 #ifdef SET_TRUSTED_CERT_IN_SAMPLES
             (void)IoTHubDeviceClient_SetOption(iotHubClientHandle, "TrustedCerts", certificates);
@@ -303,9 +310,9 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             car.state.softwareVersion = 1;
             strcpy(car.state.vanityPlate, "1T1");
 
-            unsigned char* reportedProperties;
-            serializeToJSON(&car, &reportedProperties); // internal malloc
-            printf("Size of encoded JSON: %zu\n", strlen(reportedProperties));
+            uint8_t reportedProperties[CBOR_BUFFER_SIZE];
+            serializeToCBOR(&car, reportedProperties, CBOR_BUFFER_SIZE);
+            printf("Size of encoded CBOR: %zu\n", strlen(reportedProperties));
 
             //
             // Send and receive messages from IoT Hub
@@ -329,7 +336,6 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             (void)getchar();
 
             IoTHubDeviceClient_Destroy(iotHubClientHandle);
-            free(reportedProperties);
         }
 
         IoTHub_Deinit();

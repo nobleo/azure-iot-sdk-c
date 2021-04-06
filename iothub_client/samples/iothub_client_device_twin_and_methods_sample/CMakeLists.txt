@@ -29,7 +29,3 @@ target_link_libraries(iothub_client_device_twin_and_methods_sample
 
 # Parson Library
 include_directories(${PROJECT_SOURCE_DIR}/deps/parson)
-
-# Tinycbor Library
-include_directories(${TINYCBOR_DIR})
-target_link_libraries(iothub_client_device_twin_and_methods_sample tinycbor)
