@@ -1,43 +1,10 @@
-# Run a simple device Twin C sample on Windows
-
-## Table of Contents
-
--   [Introduction](#Introduction)
--   [Step 1: Prerequisites](#Step-1-Prerequisites)
--   [Step 2: Build and Run the Sample](#Step-2-Build)
-
-<a name="Introduction"></a>
+# Run a simple Device Twin and Direct Methods using CBOR sample
 
 ## Introduction
 
 **About this document**
 
-This document describes how to build and run sample applications on the Windows platform. This multi-step process includes:
--   Preparing your development environment
--   Creating and configuring and instance of Azure IoT Hub
-
--   <details><summary><i>Install Intel's tinycbor library.</i></summary>
-    <p>
-
-    NOTE: This library must be installed prior to building the C SDK.
-
-    If on Linux, Run the following commands.
-
-    ```
-    git clone https://github.com/intel/tinycbor.git
-    cd tinycbor
-    make
-    sudo make install
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
-    ```
-
-
-    Please check your `/usr/local/lib` directory and update permissions on the installed libraries if needed.
-
-    </p>
-    </details>
-
--   Build and deploy Azure IoT SDK on device
+This document describes how to build and run this sample application on the Linux and Windows platforms. This multi-step process includes:
 
 <a name="Step-1-Prerequisites"></a>
 
@@ -45,38 +12,39 @@ This document describes how to build and run sample applications on the Windows 
 
 You should have the following items ready before beginning the process:
 
--   [Prepare your development environment][devbox-setup]
--   [Setup your IoT hub][lnk-setup-iot-hub]
--   [Provision your device and get its credentials][lnk-manage-iot-hub]
+-   [Prepare your development environment, IoT Hub, and Device](https://github.com/Azure/azure-iot-sdk-c/tree/master/iothub_client/samples#how-to-compile-and-run-the-samples)
+
+
+## Step 2: Install Intel's tinycbor library.
+Intel/tinycbor is [licenesed](https://github.com/intel/tinycbor/blob/master/LICENSE) under the MIT License.
+
+Linux:
+
+1. Run the folling commands:
+
+    ```
+    git clone https://github.com/intel/tinycbor.git
+    cd tinycbor
+    make
+    sudo make install
+    ```
+
+2.  Please check your `/usr/local/lib` directory and update permissions on the installed libraries if needed.
+
+Windows:
+
+1.  Open the Visual Studio Developer Command Prompt. Run the following commands:
+
+    ```
+    git clone https://github.com/intel/tinycbor.git
+    cd tinycbor
+    NMAKE /F Makefile.nmake
+    ```
+
+2.  Update your Path environment variable to include the tinycbor directory.
 
 <a name="Step-2-Build"></a>
 
-## Step 2: Build and Run the sample
+## Step 3: Build and Run the sample
 
-1.  Start a new instance of Visual Studio 2019. Open the **azure_iot_sdks.sln** solution in the **cmake_win32** folder in your home directory (usually C:\\\\users\\username\\).
-
-2.  In Visual Studio, in **Solution Explorer**, navigate to and open the following file:
-
-    IoTHub_Samples\iothub_client_device_twin_and_methods_sample\Source Files\iothub_client_device_twin_and_methods_sample.c
-
-
-3.  Locate the following code in the file:
-
-      ```
-      static const char* connectionString = "[device connection string]";
-      ```
-
-4.  Replace "[device connection string]" with the device connection string you noted [earlier](#Step-1-Prerequisites) and save the changes:
-
-       ```
-       static const char* connectionString = "HostName=..."
-       ```
-
-5.  In **Solution Explorer**, right-click the project IoTHub_Samples\iothub_client_device_twin_and_methods_sample, click **Debug**, and then click **Start new instance** to build and run the sample.
-
-6.  As the client is running it will receive the current complete Twin json content, as well as send an update to the reported properties.
-
-
-[lnk-setup-iot-hub]: ../../../doc/setup_iothub.md
-[lnk-manage-iot-hub]: ../../../doc/manage_iot_hub.md
-[devbox-setup]: ../../../doc/devbox_setup.md
+Follow [these instructions](https://github.com/Azure/azure-iot-sdk-c/blob/master/doc/devbox_setup.md) to build and run the sample for Linux or Windows.

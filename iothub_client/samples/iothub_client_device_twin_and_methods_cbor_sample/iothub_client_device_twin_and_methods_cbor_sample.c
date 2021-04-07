@@ -25,7 +25,7 @@
 #include "iothub_device_client.h"
 #include "iothub_message.h"
 
-#include "tinycbor/cbor.h"
+#include "cbor.h"
 #define CBOR_BUFFER_SIZE 512
 
 //
@@ -51,7 +51,6 @@
 // Connection String - Paste in the your iothub device connection string.
 //
 static const char* connection_string = "[device connection string]";
-
 static IOTHUB_DEVICE_CLIENT_HANDLE iothub_client_handle;
 
 //

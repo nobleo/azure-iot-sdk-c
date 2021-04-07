@@ -28,5 +28,21 @@ target_link_libraries(iothub_client_device_twin_and_methods_cbor_sample
 )
 
 # Tinycbor Library
-find_library(tinycbor tinycbor)
+find_library(tinycbor tinycbor
+    PATHS
+        $ENV{Path} #Windows
+        /usr/local #Linux
+    PATH_SUFFIXES
+        tinycbor/lib lib
+)
 target_link_libraries(iothub_client_device_twin_and_methods_cbor_sample tinycbor)
+
+find_path(TINYCBOR_INCLUDE_DIR cbor.h
+    PATHS
+        $ENV{Path}          #Windows
+        /usr/local/include  #Linux
+    PATH_SUFFIXES
+        tinycbor/src src    #Windows
+        tinycbor            #Linux
+)
+include_directories(${TINYCBOR_INCLUDE_DIR})
