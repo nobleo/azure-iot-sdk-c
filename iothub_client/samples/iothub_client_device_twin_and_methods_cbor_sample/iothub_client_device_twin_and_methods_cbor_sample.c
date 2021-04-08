@@ -163,7 +163,7 @@ static void parseFromCBOR(Car* car, const unsigned char* cbor_payload)
 //
 // Callbacks
 //
-static void deviceDesiredPropertiesTwinCallback(DEVICE_TWIN_UPDATE_STATE update_state, const unsigned char* payload, size_t size, void* userContextCallback);
+
 // Callback for async GET request to IoT Hub for entire Device Twin document.
 static void getTwinAsyncCallback(DEVICE_TWIN_UPDATE_STATE update_state, const unsigned char* payLoad, size_t size, void* userContextCallback)
 {
