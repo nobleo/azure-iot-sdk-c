@@ -217,7 +217,7 @@ static void deviceDesiredPropertiesTwinCallback(DEVICE_TWIN_UPDATE_STATE update_
 
     if (desired_car.state.software_version != 0 && desired_car.state.software_version != car->state.software_version)
     {
-        printf("Received a desired software_version = %ld" "\n", desired_car.state.software_version);
+        printf("Received a desired software_version = %" PRIu64 "\n", desired_car.state.software_version);
         car->state.software_version = desired_car.state.software_version;
     }
 
