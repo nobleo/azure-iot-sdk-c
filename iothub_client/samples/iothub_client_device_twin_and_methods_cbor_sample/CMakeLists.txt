@@ -7,6 +7,12 @@ endif()
 
 compileAsC99()
 
+IF(WIN32)
+    #windows needs this define
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    add_definitions(-DGB_MEASURE_MEMORY_FOR_THIS -DGB_DEBUG_ALLOC)
+ENDIF(WIN32)
+
 # Sample Executable
 set(iothub_client_device_twin_and_methods_cbor_sample_c_files
     iothub_client_device_twin_and_methods_cbor_sample.c
@@ -32,7 +38,7 @@ find_library(tinycbor tinycbor
     PATHS $ENV{Path}                #Windows
     PATH_SUFFIXES tinycbor/lib lib  #Windows
 )
-target_link_libraries(iothub_client_device_twin_and_methods_cbor_sample tinycbor)
+target_link_libraries(iothub_client_device_twin_and_methods_cbor_sample ${tinycbor})
 
 find_path(TINYCBOR_INCLUDE_DIR cbor.h
     PATHS

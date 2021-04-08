@@ -7,6 +7,12 @@ endif()
 
 compileAsC99()
 
+IF(WIN32)
+    #windows needs this define
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    add_definitions(-DGB_MEASURE_MEMORY_FOR_THIS -DGB_DEBUG_ALLOC)
+ENDIF(WIN32)
+
 # Sample Executable
 set(iothub_client_device_twin_and_methods_sample_c_files
     iothub_client_device_twin_and_methods_sample.c

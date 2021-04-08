@@ -72,24 +72,24 @@ static IOTHUB_DEVICE_CLIENT_HANDLE iothub_client_handle;
 //
 typedef struct MAKER_TAG
 {
-    unsigned char* name;
-    unsigned char* style;
+    char* name;
+    char* style;
     uint64_t year;
 } Maker;
 
 typedef struct STATE_TAG
 {
-    uint64_t software_version;         // desired/reported property
-    uint8_t max_speed;                 // desired/reported property
-    unsigned char* vanity_plate;       // reported property
+    uint64_t software_version;  // desired/reported property
+    uint8_t max_speed;          // desired/reported property
+    char* vanity_plate;         // reported property
 } State;
 
 typedef struct CAR_TAG
 {
-    unsigned char* last_oil_change_date;    // reported property
-    bool change_oil_reminder;               // desired/reported property
-    Maker maker;                            // reported property
-    State state;                            // desired/reported property
+    char* last_oil_change_date; // reported property
+    bool change_oil_reminder;   // desired/reported property
+    Maker maker;                // reported property
+    State state;                // desired/reported property
 } Car;
 
 
@@ -107,9 +107,9 @@ static void serializeToJSON(Car* car, unsigned char** result)
     (void)json_object_set_string(root_object, "last_oil_change_date", car->last_oil_change_date);
     (void)json_object_dotset_string(root_object, "maker.name", car->maker.name);
     (void)json_object_dotset_string(root_object, "maker.style", car->maker.style);
-    (void)json_object_dotset_number(root_object, "maker.year", car->maker.year);
-    (void)json_object_dotset_number(root_object, "state.max_speed", car->state.max_speed);
-    (void)json_object_dotset_number(root_object, "state.software_version", car->state.software_version);
+    (void)json_object_dotset_number(root_object, "maker.year", (double)car->maker.year);
+    (void)json_object_dotset_number(root_object, "state.max_speed", (double)car->state.max_speed);
+    (void)json_object_dotset_number(root_object, "state.software_version", (double)car->state.software_version);
     (void)json_object_dotset_string(root_object, "state.vanity_plate", car->state.vanity_plate);
 
     *result = (unsigned char*)json_serialize_to_string(root_value); // internal malloc
@@ -120,7 +120,7 @@ static void serializeToJSON(Car* car, unsigned char** result)
 // Convert the desired properties of the Device Twin JSON blob from IoT Hub into a Car Object.
 static void parseFromJSON(Car *car, const unsigned char* json_payload)
 {
-    JSON_Value* root_value = json_parse_string(json_payload);
+    JSON_Value* root_value = json_parse_string((char*)json_payload);
     JSON_Object* root_object = json_value_get_object(root_value);
 
     // Only desired properties:
@@ -140,7 +140,7 @@ static void parseFromJSON(Car *car, const unsigned char* json_payload)
 
     if (software_version != NULL)
     {
-        car->state.software_version = json_value_get_number(software_version);
+        car->state.software_version = (uint64_t)json_value_get_number(software_version);
     }
 }
 
@@ -193,15 +193,14 @@ static void deviceDesiredPropertiesTwinCallback(DEVICE_TWIN_UPDATE_STATE update_
 
     if (desiredCar.state.software_version != 0 && desiredCar.state.software_version != car->state.software_version)
     {
-        printf("Received a desired software_version = %ld" "\n", desiredCar.state.software_version);
+        printf("Received a desired software_version = %" PRIu64 "\n", desiredCar.state.software_version);
         car->state.software_version = desiredCar.state.software_version;
     }
 
     unsigned char* reported_properties;
     serializeToJSON(car, &reported_properties); // internal malloc
 
-    (void)IoTHubDeviceClient_SendReportedState(iothub_client_handle, reported_properties, strlen(reported_properties), deviceReportedPropertiesTwinCallback, NULL);
-            ThreadAPI_Sleep(1000);
+    (void)IoTHubDeviceClient_SendReportedState(iothub_client_handle, reported_properties, strlen((char*)reported_properties), deviceReportedPropertiesTwinCallback, NULL);
 
     free(reported_properties);
 }
@@ -306,7 +305,7 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
 
             unsigned char* reported_properties;
             serializeToJSON(&car, &reported_properties); // internal malloc
-            printf("Size of encoded JSON: %zu\n", strlen(reported_properties));
+            printf("Size of encoded JSON: %zu\n", strlen((char*)reported_properties));
 
             //
             // Send and receive messages from IoT Hub
@@ -314,7 +313,7 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             (void)IoTHubDeviceClient_GetTwinAsync(iothub_client_handle, getTwinAsyncCallback, NULL);
             ThreadAPI_Sleep(1000);
 
-            (void)IoTHubDeviceClient_SendReportedState(iothub_client_handle, reported_properties, strlen(reported_properties), deviceReportedPropertiesTwinCallback, NULL);
+            (void)IoTHubDeviceClient_SendReportedState(iothub_client_handle, reported_properties, strlen((char*)reported_properties), deviceReportedPropertiesTwinCallback, NULL);
             ThreadAPI_Sleep(1000);
 
             (void)IoTHubDeviceClient_SetDeviceTwinCallback(iothub_client_handle, deviceDesiredPropertiesTwinCallback, &car);

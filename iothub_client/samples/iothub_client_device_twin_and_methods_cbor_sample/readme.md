@@ -48,3 +48,5 @@ Windows:
 ## Step 3: Build and Run the sample
 
 Follow [these instructions](https://github.com/Azure/azure-iot-sdk-c/blob/master/doc/devbox_setup.md) to build and run the sample for Linux or Windows.
+
+NOTE: Intel/tinycbor is installed on Windows as an x86 library. Be sure to use the command `cmake .. -A Win32` when building the CMake files if using this OS.

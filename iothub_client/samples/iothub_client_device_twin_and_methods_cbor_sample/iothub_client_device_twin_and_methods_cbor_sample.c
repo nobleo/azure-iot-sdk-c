@@ -58,24 +58,24 @@ static IOTHUB_DEVICE_CLIENT_HANDLE iothub_client_handle;
 //
 typedef struct MAKER_TAG
 {
-    unsigned char* name;
-    unsigned char* style;
+    char* name;
+    char* style;
     uint64_t year;
 } Maker;
 
 typedef struct STATE_TAG
 {
-    uint64_t software_version;         // desired/reported property
-    uint8_t max_speed;                 // desired/reported property
-    unsigned char* vanity_plate;       // reported property
+    uint64_t software_version;  // desired/reported property
+    uint8_t max_speed;          // desired/reported property
+    char* vanity_plate;         // reported property
 } State;
 
 typedef struct CAR_TAG
 {
-    unsigned char* last_oil_change_date;    // reported property
-    bool change_oil_reminder;               // desired/reported property
-    Maker maker;                            // reported property
-    State state;                            // desired/reported property
+    char* last_oil_change_date; // reported property
+    bool change_oil_reminder;   // desired/reported property
+    Maker maker;                // reported property
+    State state;                // desired/reported property
 } Car;
 
 
@@ -137,7 +137,7 @@ static void parseFromCBOR(Car* car, const unsigned char* cbor_payload)
 
     // WARNING: Check the return of all API calls when developing your solution. Return checks are
     //          ommited from this sample for simplification.
-    (void)cbor_parser_init(cbor_payload, strlen(cbor_payload), 0, &cbor_parser, &root);
+    (void)cbor_parser_init(cbor_payload, strlen((char*)cbor_payload), 0, &cbor_parser, &root);
 
     (void)cbor_value_map_find_value(&root, "change_oil_reminder", &change_oil_reminder);
     if (cbor_value_is_valid(&change_oil_reminder))
@@ -170,7 +170,7 @@ static void getTwinAsyncCallback(DEVICE_TWIN_UPDATE_STATE update_state, const un
     (void)update_state;
     (void)userContextCallback;
 
-    //printf("getTwinAsyncCallback payload:\n%.*s\n", (int)size, payLoad);
+    printf("getTwinAsyncCallback payload:\n%.*s\n", (int)size, payLoad);
 
     //TEST//
     // JSON: {"changeOilReminder":true,"state":{"maxSpeed":120,"softwareVersion":2},"$version":13}
@@ -224,8 +224,7 @@ static void deviceDesiredPropertiesTwinCallback(DEVICE_TWIN_UPDATE_STATE update_
     uint8_t reported_properties[CBOR_BUFFER_SIZE];
     serializeToCBOR(car, reported_properties, CBOR_BUFFER_SIZE);
 
-    (void)IoTHubDeviceClient_SendReportedState(iothub_client_handle, reported_properties, strlen(reported_properties), deviceReportedPropertiesTwinCallback, NULL);
-            ThreadAPI_Sleep(1000);
+    (void)IoTHubDeviceClient_SendReportedState(iothub_client_handle, reported_properties, strlen((char*)reported_properties), deviceReportedPropertiesTwinCallback, NULL);
 }
 
 // Callback for when IoT Hub sends a Direct Method to the device.
@@ -298,8 +297,8 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
 
             // Format Device Twin document and Direct Method payload using CBOR.
             // ONLY valid for use with MQTT. Must occur prior to CONNECT.
-          //  OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_CBOR;
-          //  (void)IoTHubDeviceClient_SetOption(iothub_client_handle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
+            OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_CBOR;
+            (void)IoTHubDeviceClient_SetOption(iothub_client_handle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
 
 #ifdef SET_TRUSTED_CERT_IN_SAMPLES
             (void)IoTHubDeviceClient_SetOption(iothub_client_handle, "TrustedCerts", certificates);
@@ -320,7 +319,7 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
 
             uint8_t reported_properties[CBOR_BUFFER_SIZE];
             serializeToCBOR(&car, reported_properties, CBOR_BUFFER_SIZE);
-            printf("Size of encoded CBOR: %zu\n", strlen(reported_properties));
+            printf("Size of encoded CBOR: %zu\n", strlen((char*)reported_properties));
             // IMPORTANT: You must validate your own data prior to sending.
 
             //
@@ -329,7 +328,7 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             (void)IoTHubDeviceClient_GetTwinAsync(iothub_client_handle, getTwinAsyncCallback, NULL);
             ThreadAPI_Sleep(1000);
 
-            (void)IoTHubDeviceClient_SendReportedState(iothub_client_handle, reported_properties, strlen(reported_properties), deviceReportedPropertiesTwinCallback, NULL);
+            (void)IoTHubDeviceClient_SendReportedState(iothub_client_handle, reported_properties, strlen((char*)reported_properties), deviceReportedPropertiesTwinCallback, NULL);
             ThreadAPI_Sleep(1000);
 
             (void)IoTHubDeviceClient_SetDeviceTwinCallback(iothub_client_handle, deviceDesiredPropertiesTwinCallback, &car);
