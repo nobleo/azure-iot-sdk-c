@@ -97,7 +97,8 @@ static const char DT_MODEL_ID_TOKEN[] = "model-id";
 
 // Content type for twin document and direct methods. Will be used in username.
 static const char* METHOD_TWIN_CONTENT_TYPE_TOKEN = "default-content-type";
-static const char* METHOD_TWIN_CONTENT_TYPE_CBOR  = "application/cbor";
+static const char* METHOD_TWIN_CONTENT_TYPE_CBOR  = "application%2fcbor";
+static const char* METHOD_TWIN_CONTENT_TYPE_JSON  = "application%2fjson";
 
 static const char DEFAULT_IOTHUB_PRODUCT_IDENTIFIER[] = CLIENT_DEVICE_TYPE_PREFIX "/" IOTHUB_SDK_VERSION;
 
@@ -2378,6 +2379,35 @@ static STRING_HANDLE buildClientId(const char* device_id, const char* module_id)
 }
 
 //
+// build the parameter and add to the username.
+//
+static int addUsernameParameter(STRING_HANDLE username, const char* token, const char* value)
+{
+    int result;
+
+    STRING_HANDLE parameterString = NULL;
+
+    if ((parameterString = STRING_construct_sprintf("&%s=%s", token, value)) == NULL)
+    {
+        LogError("Cannot build %s=%s string", token, value);
+        result = MU_FAILURE;
+    }
+    else if (STRING_concat_with_STRING(username, parameterString) != 0)
+    {
+        LogError("Failed to add %s=%s to username in CONNECT", token, value);
+        result = MU_FAILURE;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    STRING_delete(parameterString);
+
+    return result;
+}
+
+//
 // buildConfigForUsernameStep2IfNeeded builds the MQTT username.  IoT Hub uses the query string of the userName to optionally
 // specify SDK information, product information optionally specified by the application, and optionally the PnP ModelId.
 //
@@ -2395,9 +2425,6 @@ static int buildConfigForUsernameStep2IfNeeded(PMQTTTRANSPORT_HANDLE_DATA transp
         // TODO: The preview API version in SDK is only scoped to scenarios that require the modelId to be set.
         // https://github.com/Azure/azure-iot-sdk-c/issues/1547 tracks removing this once non-preview API versions support modelId.
         STRING_HANDLE urlEncodedModelId = NULL;
-        STRING_HANDLE modelIdParameter = NULL;
-        uint8_t method_twin_content_type = transport_data->method_twin_content_type;
-        STRING_HANDLE contentTypeParameter = NULL;
 
         if ((productInfoEncoded = URL_EncodeString((appSpecifiedProductInfo != NULL) ? appSpecifiedProductInfo : DEFAULT_IOTHUB_PRODUCT_IDENTIFIER)) == NULL)
         {
@@ -2416,36 +2443,20 @@ static int buildConfigForUsernameStep2IfNeeded(PMQTTTRANSPORT_HANDLE_DATA transp
                 LogError("Failed to URL encode the modelID string");
                 result = MU_FAILURE;
             }
-            else if ((modelIdParameter = STRING_construct_sprintf("&%s=%s", DT_MODEL_ID_TOKEN, STRING_c_str(urlEncodedModelId))) == NULL)
-            {
-                LogError("Cannot build %s=%s string", DT_MODEL_ID_TOKEN, STRING_c_str(urlEncodedModelId));
-                result = MU_FAILURE;
-            }
-            else if (STRING_concat_with_STRING(userName, modelIdParameter) != 0)
-            {
-                LogError("Failed to add %s=%s username in CONNECT", DT_MODEL_ID_TOKEN, STRING_c_str(urlEncodedModelId));
-                result = MU_FAILURE;
-            }
             else
             {
-                result = 0;
+                result = addUsernameParameter(userName, DT_MODEL_ID_TOKEN, STRING_c_str(urlEncodedModelId));
             }
         }
-        else if (method_twin_content_type != OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_UNKNOWN)
+        else if (transport_data->method_twin_content_type != OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_UNKNOWN)
         {
-            if ((contentTypeParameter = STRING_construct_sprintf("&%s=%s", METHOD_TWIN_CONTENT_TYPE_TOKEN, METHOD_TWIN_CONTENT_TYPE_CBOR)) == NULL)
+            if (transport_data->method_twin_content_type == OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_CBOR)
             {
-                LogError("Cannot build %s=%s string", METHOD_TWIN_CONTENT_TYPE_TOKEN, METHOD_TWIN_CONTENT_TYPE_CBOR);
-                result = MU_FAILURE;
+                result = addUsernameParameter(userName, METHOD_TWIN_CONTENT_TYPE_TOKEN, METHOD_TWIN_CONTENT_TYPE_CBOR);
             }
-            else if (STRING_concat_with_STRING(userName, contentTypeParameter) != 0)
+            else //JSON
             {
-                LogError("Failed to add %s=%s to username in CONNECT", METHOD_TWIN_CONTENT_TYPE_TOKEN, METHOD_TWIN_CONTENT_TYPE_CBOR);
-                result = MU_FAILURE;
-            }
-            else
-            {
-                result = 0;
+                result = addUsernameParameter(userName, METHOD_TWIN_CONTENT_TYPE_TOKEN, METHOD_TWIN_CONTENT_TYPE_JSON);
             }
         }
         else
@@ -2465,8 +2476,6 @@ static int buildConfigForUsernameStep2IfNeeded(PMQTTTRANSPORT_HANDLE_DATA transp
         }
 
         STRING_delete(userName);
-        STRING_delete(modelIdParameter);
-        STRING_delete(contentTypeParameter);
         STRING_delete(urlEncodedModelId);
         STRING_delete(productInfoEncoded);
     }

@@ -72,22 +72,22 @@ static IOTHUB_DEVICE_CLIENT_HANDLE iothub_client_handle;
 //
 typedef struct MAKER_TAG
 {
-    char* name;
-    char* style;
-    uint64_t year;
+    char* name;                 // reported property
+    char* style;                // reported property
+    uint64_t year;              // reported property
 } Maker;
 
 typedef struct STATE_TAG
 {
     uint64_t software_version;  // desired/reported property
-    uint8_t max_speed;          // desired/reported property
+    uint64_t max_speed;         // desired/reported property
     char* vanity_plate;         // reported property
 } State;
 
 typedef struct CAR_TAG
 {
     char* last_oil_change_date; // reported property
-    bool change_oil_reminder;   // desired/reported property
+    bool change_oil_reminder;   // desired property
     Maker maker;                // reported property
     State state;                // desired/reported property
 } Car;
@@ -103,7 +103,10 @@ static void serializeToJSON(Car* car, unsigned char** result)
     JSON_Value* root_value = json_value_init_object(); // internal malloc
     JSON_Object* root_object = json_value_get_object(root_value);
 
-    // Only reported properties:
+    // WARNING: Check the return of all API calls when developing your solution. Many return checks
+    //          are ommited from this sample for simplification.
+
+    // Only reported properties.
     (void)json_object_set_string(root_object, "last_oil_change_date", car->last_oil_change_date);
     (void)json_object_dotset_string(root_object, "maker.name", car->maker.name);
     (void)json_object_dotset_string(root_object, "maker.style", car->maker.style);
@@ -118,15 +121,30 @@ static void serializeToJSON(Car* car, unsigned char** result)
 }
 
 // Convert the desired properties of the Device Twin JSON blob from IoT Hub into a Car Object.
-static void parseFromJSON(Car *car, const unsigned char* json_payload)
+static void parseFromJSON(DEVICE_TWIN_UPDATE_STATE update_state, Car *car, const unsigned char* json_payload)
 {
     JSON_Value* root_value = json_parse_string((char*)json_payload);
     JSON_Object* root_object = json_value_get_object(root_value);
 
-    // Only desired properties:
-    JSON_Value* change_oil_reminder = json_object_get_value(root_object, "change_oil_reminder");
-    JSON_Value* max_speed = json_object_dotget_value(root_object, "state.max_speed");
-    JSON_Value* software_version = json_object_dotget_value(root_object, "state.software_version");
+    // Only desired properties.
+    JSON_Value* change_oil_reminder;
+    JSON_Value* max_speed;
+    JSON_Value* software_version;
+
+    // WARNING: Check the return of all API calls when developing your solution. Many return checks
+    //          are ommited from this sample for simplification.
+    if (update_state == DEVICE_TWIN_UPDATE_COMPLETE)
+    {
+        change_oil_reminder = json_object_dotget_value(root_object, "desired.change_oil_reminder");
+        max_speed = json_object_dotget_value(root_object, "desired.state.max_speed");
+        software_version = json_object_dotget_value(root_object, "desired.state.software_version");
+    }
+    else
+    {
+        change_oil_reminder = json_object_dotget_value(root_object, "change_oil_reminder");
+        max_speed = json_object_dotget_value(root_object, "state.max_speed");
+        software_version = json_object_dotget_value(root_object, "state.software_version");
+    }
 
     if (change_oil_reminder != NULL)
     {
@@ -149,12 +167,12 @@ static void parseFromJSON(Car *car, const unsigned char* json_payload)
 //
 
 // Callback for async GET request to IoT Hub for entire Device Twin document.
-static void getTwinAsyncCallback(DEVICE_TWIN_UPDATE_STATE update_state, const unsigned char* payLoad, size_t size, void* userContextCallback)
+static void getTwinAsyncCallback(DEVICE_TWIN_UPDATE_STATE update_state, const unsigned char* payload, size_t size, void* userContextCallback)
 {
     (void)update_state;
     (void)userContextCallback;
 
-    printf("getTwinAsyncCallback payload:\n%.*s\n", (int)size, payLoad);
+    printf("getTwinAsyncCallback payload:\n%.*s\n", (int)size, payload);
 }
 
 // Callback for when device sends reported properties to IoT Hub, and IoT Hub updates the Device
@@ -174,27 +192,26 @@ static void deviceDesiredPropertiesTwinCallback(DEVICE_TWIN_UPDATE_STATE update_
     printf("deviceDesiredPropertiesTwinCallback payload:\n%.*s\n", (int)size, payload);
 
     Car* car = (Car*)userContextCallback;
-    Car desiredCar;
-    memset(&desiredCar, 0, sizeof(Car));
-    parseFromJSON(&desiredCar, payload);
-    // IMPORTANT: You must validate your own data prior to sending.
+    Car desired_car;
+    memset(&desired_car, 0, sizeof(Car));
+    parseFromJSON(update_state, &desired_car, payload);
 
-    if (desiredCar.change_oil_reminder != car->change_oil_reminder)
+    if (desired_car.change_oil_reminder != car->change_oil_reminder)
     {
-        printf("Received a desired change_oil_reminder = %d\n", desiredCar.change_oil_reminder);
-        car->change_oil_reminder = desiredCar.change_oil_reminder;
+        printf("Received a desired change_oil_reminder = %d\n", desired_car.change_oil_reminder);
+        car->change_oil_reminder = desired_car.change_oil_reminder;
     }
 
-    if (desiredCar.state.max_speed != 0 && desiredCar.state.max_speed != car->state.max_speed)
+    if (desired_car.state.max_speed != 0 && desired_car.state.max_speed != car->state.max_speed)
     {
-        printf("Received a desired max_speed = %" PRIu8 "\n", desiredCar.state.max_speed);
-        car->state.max_speed = desiredCar.state.max_speed;
+        printf("Received a desired max_speed = %" PRIu64 "\n", desired_car.state.max_speed);
+        car->state.max_speed = desired_car.state.max_speed;
     }
 
-    if (desiredCar.state.software_version != 0 && desiredCar.state.software_version != car->state.software_version)
+    if (desired_car.state.software_version != 0 && desired_car.state.software_version != car->state.software_version)
     {
-        printf("Received a desired software_version = %" PRIu64 "\n", desiredCar.state.software_version);
-        car->state.software_version = desiredCar.state.software_version;
+        printf("Received a desired software_version = %" PRIu64 "\n", desired_car.state.software_version);
+        car->state.software_version = desired_car.state.software_version;
     }
 
     unsigned char* reported_properties;
@@ -282,8 +299,8 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
 
             // This option not required to use JSON format due to backwards compatibility.
             // If option is used, it is ONLY valid for use with MQTT. Must occur priot to CONNECT.
-            //OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_JSON;
-            //(void)IoTHubDeviceClient_SetOption(iothub_client_handle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
+            OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE ct = OPTION_METHOD_TWIN_CONTENT_TYPE_VALUE_JSON;
+            (void)IoTHubDeviceClient_SetOption(iothub_client_handle, OPTION_METHOD_TWIN_CONTENT_TYPE, &ct);
 #endif // SAMPLE_MQTT || SAMPLE_MQTT_OVER_WEBSOCKETS
 
 #ifdef SET_TRUSTED_CERT_IN_SAMPLES
@@ -306,6 +323,7 @@ static void iothub_client_device_twin_and_methods_sample_run(void)
             unsigned char* reported_properties;
             serializeToJSON(&car, &reported_properties); // internal malloc
             printf("Size of encoded JSON: %zu\n", strlen((char*)reported_properties));
+            // IMPORTANT: You must validate your own data prior to sending.
 
             //
             // Send and receive messages from IoT Hub
