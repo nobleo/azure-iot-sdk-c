@@ -33,7 +33,7 @@ Linux:
 
 Windows:
 
-1.  If using an x86 system, open the Developer Command Prompt fro Visual Studio. If using an x64 system, open the x64 Native Tools Command Prompt for Visual Studio.
+1.  If using an x86 system, open the Developer Command Prompt for Visual Studio. If using an x64 system, open the x64 Native Tools Command Prompt for Visual Studio.
 
 2.  Run the following commands:
 
