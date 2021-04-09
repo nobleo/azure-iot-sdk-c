@@ -34,6 +34,11 @@ target_link_libraries(iothub_client_device_twin_and_methods_cbor_sample
 )
 
 # Tinycbor Library
+if(MSVC)
+  set(CMAKE_EXE_LINKER_FLAGS
+      "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:LIBCMT.lib")
+endif()
+
 find_library(tinycbor tinycbor
     PATHS $ENV{Path}                #Windows
     PATH_SUFFIXES tinycbor/lib lib  #Windows

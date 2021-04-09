@@ -33,7 +33,9 @@ Linux:
 
 Windows:
 
-1.  Open the Visual Studio Developer Command Prompt. Run the following commands:
+1.  If using an x86 system, open the Developer Command Prompt fro Visual Studio. If using an x64 system, open the x64 Native Tools Command Prompt for Visual Studio.
+
+2.  Run the following commands:
 
     ```
     git clone https://github.com/intel/tinycbor.git
@@ -41,7 +43,7 @@ Windows:
     NMAKE /F Makefile.nmake
     ```
 
-2.  Update your Path environment variable to include the tinycbor directory.
+3.  Update your Path environment variable to include the tinycbor directory.
 
 <a name="Step-2-Build"></a>
 
@@ -49,4 +51,4 @@ Windows:
 
 Follow [these instructions](https://github.com/Azure/azure-iot-sdk-c/blob/master/doc/devbox_setup.md) to build and run the sample for Linux or Windows.
 
-NOTE: Intel/tinycbor is installed on Windows as an x86 library. Be sure to use the command `cmake .. -A Win32` when building the CMake files if using this OS.
+NOTE: If intel/tinycbor is installed on Windows as an x86 library, be sure to use the command `cmake .. -A Win32` when building the CMake files.
